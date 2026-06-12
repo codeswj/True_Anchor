@@ -15,6 +15,7 @@ import Messages from './pages/messages/Messages';
 import Settings from './pages/Settings';
 import AdminOverview from './pages/admin/AdminOverview';
 import AdminLoans from './pages/admin/AdminLoans';
+import Landing from './pages/Landing';
 
 function AdminGuard({ children }) {
   const { user } = useAuth();
@@ -53,7 +54,7 @@ function AppRoutes() {
         <Route path="/admin/loans"   element={<AdminGuard><AdminLoans /></AdminGuard>} />
       </Route>
 
-      <Route path="/" element={<Navigate to={user ? (user.role === 'admin' ? '/admin' : '/dashboard') : '/login'} replace />} />
+      <Route path="/" element={<Landing />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
