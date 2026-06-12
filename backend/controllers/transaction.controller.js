@@ -3,9 +3,9 @@ const { success, error } = require('../utils/response');
 
 const deposit = async (req, res, next) => {
     try {
-        const { amount, description } = req.body;
+        const { amount, description, accountType } = req.body;
         if (!amount || amount <= 0) return error(res, 'Valid amount is required', 400);
-        const data = await txnService.deposit(req.user.id, { amount, description });
+        const data = await txnService.deposit(req.user.id, { amount, description, accountType });
         return success(res, data, 'Deposit successful', 201);
     } catch (err) {
         if (err.statusCode) return error(res, err.message, err.statusCode);
@@ -15,9 +15,9 @@ const deposit = async (req, res, next) => {
 
 const withdraw = async (req, res, next) => {
     try {
-        const { amount, description } = req.body;
+        const { amount, description, accountType } = req.body;
         if (!amount || amount <= 0) return error(res, 'Valid amount is required', 400);
-        const data = await txnService.withdraw(req.user.id, { amount, description });
+        const data = await txnService.withdraw(req.user.id, { amount, description, accountType });
         return success(res, data, 'Withdrawal successful', 201);
     } catch (err) {
         if (err.statusCode) return error(res, err.message, err.statusCode);
@@ -27,9 +27,9 @@ const withdraw = async (req, res, next) => {
 
 const bankTransfer = async (req, res, next) => {
     try {
-        const { amount, bankName, bankAccount, description } = req.body;
+        const { amount, bankName, bankAccount, description, accountType } = req.body;
         if (!amount || !bankName || !bankAccount) return error(res, 'amount, bankName and bankAccount are required', 400);
-        const data = await txnService.bankTransfer(req.user.id, { amount, bankName, bankAccount, description });
+        const data = await txnService.bankTransfer(req.user.id, { amount, bankName, bankAccount, description, accountType });
         return success(res, data, 'Bank transfer successful', 201);
     } catch (err) {
         if (err.statusCode) return error(res, err.message, err.statusCode);
@@ -39,9 +39,9 @@ const bankTransfer = async (req, res, next) => {
 
 const mobileMoneyTransfer = async (req, res, next) => {
     try {
-        const { amount, recipientPhone, description } = req.body;
+        const { amount, recipientPhone, description, accountType } = req.body;
         if (!amount || !recipientPhone) return error(res, 'amount and recipientPhone are required', 400);
-        const data = await txnService.mobileMoneyTransfer(req.user.id, { amount, recipientPhone, description });
+        const data = await txnService.mobileMoneyTransfer(req.user.id, { amount, recipientPhone, description, accountType });
         return success(res, data, 'Mobile money transfer successful', 201);
     } catch (err) {
         if (err.statusCode) return error(res, err.message, err.statusCode);
@@ -89,8 +89,9 @@ const getStatement = async (req, res, next) => {
     try {
         const limit  = parseInt(req.query.limit)  || 20;
         const offset = parseInt(req.query.offset) || 0;
-        const type   = req.query.type || null;
-        const data   = await txnService.getStatement(req.user.id, { limit, offset, type });
+        const type        = req.query.type || null;
+        const accountType = req.query.accountType || 'transactional';
+        const data        = await txnService.getStatement(req.user.id, { limit, offset, type, accountType });
         return success(res, data);
     } catch (err) {
         if (err.statusCode) return error(res, err.message, err.statusCode);

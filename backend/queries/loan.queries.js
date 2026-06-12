@@ -141,11 +141,12 @@ const getLoanLimit = async (userId) => {
     const { rows } = await pool.query(
         `SELECT a.balance, a.shares
          FROM accounts a
-         WHERE a.user_id = $1`,
+         WHERE a.user_id = $1
+           AND a.account_type = 'shared'`,
         [userId]
     );
     if (!rows[0]) return 0;
-    // Loan limit = 3x savings balance
+    // Loan limit = 3x shared contribution balance
     return parseFloat(rows[0].balance) * 3;
 };
 

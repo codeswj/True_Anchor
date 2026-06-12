@@ -5,9 +5,9 @@ const generateMemberNumber = (sequence) => {
     return `YC-${String(sequence).padStart(6, '0')}`;
 };
 
-// Generate an account number e.g. ACC-000123
-const generateAccountNumber = (sequence) => {
-    return `ACC-${String(sequence).padStart(6, '0')}`;
+// Generate an account number e.g. TXN-000123
+const generateAccountNumber = (sequence, prefix = 'TXN') => {
+    return `${prefix}-${String(sequence).padStart(6, '0')}`;
 };
 
 // Generate a loan number e.g. LN-000123

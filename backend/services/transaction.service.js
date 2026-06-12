@@ -1,30 +1,53 @@
-const { pool }               = require('../config/db');
+const { pool } = require('../config/db');
 const { getAccountByUserId, updateBalance, updateShares } = require('../queries/account.queries');
 const { createTransaction, getTransactionsByAccount } = require('../queries/transaction.queries');
-const { generateReference, formatPhone }  = require('../utils/helpers');
+const { generateReference, formatPhone } = require('../utils/helpers');
 
-// ── Deposit ───────────────────────────────────────────────
-const deposit = async (userId, { amount, description }) => {
+const MEMBER_ACCOUNT_TYPES = ['shared', 'transactional', 'backoffice'];
+const MEMBER_MANAGED_ACCOUNT_TYPES = ['shared', 'transactional'];
+
+const normalizeAccountType = (accountType = 'transactional', allowedTypes = MEMBER_ACCOUNT_TYPES) => {
+    if (!allowedTypes.includes(accountType)) {
+        throw { statusCode: 400, message: 'Invalid account type' };
+    }
+    return accountType;
+};
+
+const requireTransactionalAccount = (accountType = 'transactional') => {
+    if (accountType !== 'transactional') {
+        throw { statusCode: 400, message: 'This action can only use the transactional account' };
+    }
+};
+
+const getMemberAccount = async (userId, accountType = 'transactional', allowedTypes = MEMBER_ACCOUNT_TYPES) => {
+    const type = normalizeAccountType(accountType, allowedTypes);
+    const account = await getAccountByUserId(userId, type);
+    if (!account) throw { statusCode: 404, message: `${type} account not found` };
+    return account;
+};
+
+const deposit = async (userId, { amount, description, accountType = 'transactional' }) => {
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
-        const account = await getAccountByUserId(userId);
-        if (!account) throw { statusCode: 404, message: 'Account not found' };
+        const account = await getMemberAccount(userId, accountType, MEMBER_MANAGED_ACCOUNT_TYPES);
 
         const balanceBefore = parseFloat(account.balance);
-        const balanceAfter  = balanceBefore + parseFloat(amount);
+        const balanceAfter = balanceBefore + parseFloat(amount);
 
         await updateBalance(client, account.id, balanceAfter);
+        if (account.account_type === 'shared') await updateShares(client, account.id, balanceAfter);
+
         const txn = await createTransaction(client, {
-            accountId:    account.id,
+            accountId: account.id,
             userId,
-            type:         'deposit',
+            type: 'deposit',
             amount,
             balanceBefore,
             balanceAfter,
-            status:       'completed',
-            reference:    generateReference(),
-            description:  description || 'Deposit',
+            status: 'completed',
+            reference: generateReference(),
+            description: description || `Deposit to ${account.account_type} account`,
         });
 
         await client.query('COMMIT');
@@ -37,13 +60,12 @@ const deposit = async (userId, { amount, description }) => {
     }
 };
 
-// ── Withdraw ──────────────────────────────────────────────
-const withdraw = async (userId, { amount, description }) => {
+const withdraw = async (userId, { amount, description, accountType = 'transactional' }) => {
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
-        const account = await getAccountByUserId(userId);
-        if (!account) throw { statusCode: 404, message: 'Account not found' };
+        requireTransactionalAccount(accountType);
+        const account = await getMemberAccount(userId, accountType);
 
         const balanceBefore = parseFloat(account.balance);
         if (balanceBefore < parseFloat(amount)) throw { statusCode: 400, message: 'Insufficient balance' };
@@ -52,15 +74,15 @@ const withdraw = async (userId, { amount, description }) => {
         await updateBalance(client, account.id, balanceAfter);
 
         const txn = await createTransaction(client, {
-            accountId:    account.id,
+            accountId: account.id,
             userId,
-            type:         'withdrawal',
+            type: 'withdrawal',
             amount,
             balanceBefore,
             balanceAfter,
-            status:       'completed',
-            reference:    generateReference(),
-            description:  description || 'Withdrawal',
+            status: 'completed',
+            reference: generateReference(),
+            description: description || 'Withdrawal',
         });
 
         await client.query('COMMIT');
@@ -73,13 +95,12 @@ const withdraw = async (userId, { amount, description }) => {
     }
 };
 
-// ── Bank Transfer ─────────────────────────────────────────
-const bankTransfer = async (userId, { amount, bankName, bankAccount, description }) => {
+const bankTransfer = async (userId, { amount, bankName, bankAccount, description, accountType = 'transactional' }) => {
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
-        const account = await getAccountByUserId(userId);
-        if (!account) throw { statusCode: 404, message: 'Account not found' };
+        requireTransactionalAccount(accountType);
+        const account = await getMemberAccount(userId, accountType);
 
         const balanceBefore = parseFloat(account.balance);
         if (balanceBefore < parseFloat(amount)) throw { statusCode: 400, message: 'Insufficient balance' };
@@ -88,15 +109,15 @@ const bankTransfer = async (userId, { amount, bankName, bankAccount, description
         await updateBalance(client, account.id, balanceAfter);
 
         const txn = await createTransaction(client, {
-            accountId:    account.id,
+            accountId: account.id,
             userId,
-            type:         'bank_transfer',
+            type: 'bank_transfer',
             amount,
             balanceBefore,
             balanceAfter,
-            status:       'completed',
-            reference:    generateReference(),
-            description:  description || `Bank transfer to ${bankName}`,
+            status: 'completed',
+            reference: generateReference(),
+            description: description || `Bank transfer to ${bankName}`,
             bankName,
             bankAccount,
         });
@@ -111,12 +132,12 @@ const bankTransfer = async (userId, { amount, bankName, bankAccount, description
     }
 };
 
-const mobileMoneyTransfer = async (userId, { amount, recipientPhone, description }) => {
+const mobileMoneyTransfer = async (userId, { amount, recipientPhone, description, accountType = 'transactional' }) => {
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
-        const account = await getAccountByUserId(userId);
-        if (!account) throw { statusCode: 404, message: 'Account not found' };
+        requireTransactionalAccount(accountType);
+        const account = await getMemberAccount(userId, accountType);
         const formattedRecipientPhone = formatPhone(recipientPhone);
 
         const balanceBefore = parseFloat(account.balance);
@@ -152,21 +173,22 @@ const savingsTransfer = async (userId, { amount, description }) => {
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
-        const account = await getAccountByUserId(userId);
-        if (!account) throw { statusCode: 404, message: 'Account not found' };
+        const transactional = await getMemberAccount(userId, 'transactional');
+        const shared = await getMemberAccount(userId, 'shared');
 
-        const balanceBefore = parseFloat(account.balance);
+        const balanceBefore = parseFloat(transactional.balance);
         if (balanceBefore < parseFloat(amount)) throw { statusCode: 400, message: 'Insufficient balance' };
 
         const balanceAfter = balanceBefore - parseFloat(amount);
-        const sharesBefore = parseFloat(account.shares || 0);
-        const sharesAfter = sharesBefore + parseFloat(amount);
+        const sharedBefore = parseFloat(shared.balance || 0);
+        const sharedAfter = sharedBefore + parseFloat(amount);
 
-        await updateBalance(client, account.id, balanceAfter);
-        await updateShares(client, account.id, sharesAfter);
+        await updateBalance(client, transactional.id, balanceAfter);
+        await updateBalance(client, shared.id, sharedAfter);
+        await updateShares(client, shared.id, sharedAfter);
 
         const txn = await createTransaction(client, {
-            accountId: account.id,
+            accountId: transactional.id,
             userId,
             type: 'savings_transfer',
             amount,
@@ -174,7 +196,7 @@ const savingsTransfer = async (userId, { amount, description }) => {
             balanceAfter,
             status: 'completed',
             reference: generateReference(),
-            description: description || 'Savings transfer',
+            description: description || `Transfer to ${shared.account_number}`,
         });
 
         await client.query('COMMIT');
@@ -187,13 +209,11 @@ const savingsTransfer = async (userId, { amount, description }) => {
     }
 };
 
-// ── Buy Airtime ───────────────────────────────────────────
 const buyAirtime = async (userId, { amount, recipientPhone }) => {
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
-        const account = await getAccountByUserId(userId);
-        if (!account) throw { statusCode: 404, message: 'Account not found' };
+        const account = await getMemberAccount(userId, 'transactional');
 
         const balanceBefore = parseFloat(account.balance);
         if (balanceBefore < parseFloat(amount)) throw { statusCode: 400, message: 'Insufficient balance' };
@@ -202,15 +222,15 @@ const buyAirtime = async (userId, { amount, recipientPhone }) => {
         await updateBalance(client, account.id, balanceAfter);
 
         const txn = await createTransaction(client, {
-            accountId:      account.id,
+            accountId: account.id,
             userId,
-            type:           'airtime',
+            type: 'airtime',
             amount,
             balanceBefore,
             balanceAfter,
-            status:         'completed',
-            reference:      generateReference(),
-            description:    `Airtime for ${recipientPhone}`,
+            status: 'completed',
+            reference: generateReference(),
+            description: `Airtime for ${recipientPhone}`,
             recipientPhone,
         });
 
@@ -224,13 +244,11 @@ const buyAirtime = async (userId, { amount, recipientPhone }) => {
     }
 };
 
-// ── Pay Utility ───────────────────────────────────────────
 const payUtility = async (userId, { amount, description, recipientName, recipientPhone }) => {
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
-        const account = await getAccountByUserId(userId);
-        if (!account) throw { statusCode: 404, message: 'Account not found' };
+        const account = await getMemberAccount(userId, 'transactional');
 
         const balanceBefore = parseFloat(account.balance);
         if (balanceBefore < parseFloat(amount)) throw { statusCode: 400, message: 'Insufficient balance' };
@@ -239,15 +257,15 @@ const payUtility = async (userId, { amount, description, recipientName, recipien
         await updateBalance(client, account.id, balanceAfter);
 
         const txn = await createTransaction(client, {
-            accountId:      account.id,
+            accountId: account.id,
             userId,
-            type:           'utility_payment',
+            type: 'utility_payment',
             amount,
             balanceBefore,
             balanceAfter,
-            status:         'completed',
-            reference:      generateReference(),
-            description:    description || 'Utility payment',
+            status: 'completed',
+            reference: generateReference(),
+            description: description || 'Utility payment',
             recipientName,
             recipientPhone,
         });
@@ -262,10 +280,8 @@ const payUtility = async (userId, { amount, description, recipientName, recipien
     }
 };
 
-// ── Account Statement ─────────────────────────────────────
-const getStatement = async (userId, { limit = 20, offset = 0, type }) => {
-    const account = await getAccountByUserId(userId);
-    if (!account) throw { statusCode: 404, message: 'Account not found' };
+const getStatement = async (userId, { limit = 20, offset = 0, type, accountType = 'transactional' }) => {
+    const account = await getMemberAccount(userId, accountType);
     return getTransactionsByAccount(account.id, { limit, offset, type });
 };
 

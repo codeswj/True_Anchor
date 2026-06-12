@@ -4,7 +4,7 @@ const findUserByPhone = async (phone) => {
     const { rows } = await pool.query(
         `SELECT u.*, a.id AS account_id, a.account_number, a.balance
          FROM users u
-         LEFT JOIN accounts a ON a.user_id = u.id
+         LEFT JOIN accounts a ON a.user_id = u.id AND a.account_type = 'transactional'
          WHERE u.phone = $1`,
         [phone]
     );
@@ -15,7 +15,7 @@ const findUserById = async (id) => {
     const { rows } = await pool.query(
         `SELECT u.*, a.id AS account_id, a.account_number, a.balance
          FROM users u
-         LEFT JOIN accounts a ON a.user_id = u.id
+         LEFT JOIN accounts a ON a.user_id = u.id AND a.account_type = 'transactional'
          WHERE u.id = $1`,
         [id]
     );
@@ -34,12 +34,26 @@ const createUser = async ({ fullName, phone, pinHash, idNumber, email, memberNum
 
 const createAccount = async (userId, accountNumber) => {
     const { rows } = await pool.query(
-        `INSERT INTO accounts (user_id, account_number)
-         VALUES ($1,$2)
+        `INSERT INTO accounts (user_id, account_number, account_type)
+         VALUES ($1,$2,'transactional')
          RETURNING *`,
         [userId, accountNumber]
     );
     return rows[0];
+};
+
+const createMemberAccounts = async (userId, sequence) => {
+    const suffix = String(sequence).padStart(6, '0');
+    const { rows } = await pool.query(
+        `INSERT INTO accounts (user_id, account_number, account_type)
+         VALUES
+            ($1, $2, 'shared'),
+            ($1, $3, 'transactional'),
+            ($1, $4, 'backoffice')
+         RETURNING *`,
+        [userId, `SHR-${suffix}`, `TXN-${suffix}`, `BOF-${suffix}`]
+    );
+    return rows;
 };
 
 const getNextSequence = async (table, column) => {
@@ -61,6 +75,7 @@ module.exports = {
     findUserById,
     createUser,
     createAccount,
+    createMemberAccounts,
     getNextSequence,
     updatePin,
 };

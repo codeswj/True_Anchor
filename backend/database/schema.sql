@@ -24,17 +24,25 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 -- ============================================================
--- 2. ACCOUNTS  (one savings account per member)
+-- 2. ACCOUNTS  (member sub-accounts)
 -- ============================================================
+CREATE TYPE account_type AS ENUM (
+    'shared',
+    'transactional',
+    'backoffice'
+);
+
 CREATE TABLE IF NOT EXISTS accounts (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id         UUID                NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
-    account_number  VARCHAR(30)         NOT NULL UNIQUE,  -- e.g. ACC-00001
+    user_id         UUID                NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    account_number  VARCHAR(30)         NOT NULL UNIQUE,  -- e.g. TXN-000123, SHR-000123, BOF-000123
+    account_type    account_type        NOT NULL DEFAULT 'transactional',
     balance         NUMERIC(15, 2)      NOT NULL DEFAULT 0.00,
     shares          NUMERIC(15, 2)      NOT NULL DEFAULT 0.00,  -- share capital
     is_active       BOOLEAN             NOT NULL DEFAULT TRUE,
     created_at      TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at      TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    updated_at      TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE (user_id, account_type)
 );
 
 -- ============================================================

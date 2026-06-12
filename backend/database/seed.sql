@@ -15,26 +15,43 @@ VALUES
     ('System Admin',  '0700000000', '$2b$10$Kix/1ZYVOIpBjZjCQFJCueH4zH.PEpGfLR2C3gWjwAWtEq2FLm3pW', NULL,       'admin@yetu.co.ke','YC-ADMIN',  'admin')
 ON CONFLICT (phone) DO NOTHING;
 
--- Accounts for test members
-INSERT INTO accounts (user_id, account_number, balance, shares)
-SELECT id, 'ACC-' || LPAD(ROW_NUMBER() OVER (ORDER BY created_at)::text, 6, '0'), 
-       CASE member_number
-           WHEN 'YC-000001' THEN 50000.00
-           WHEN 'YC-000002' THEN 25000.00
-           WHEN 'YC-000003' THEN 75000.00
-           WHEN 'YC-000004' THEN 10000.00
-           ELSE 0.00
-       END,
-       CASE member_number
-           WHEN 'YC-000001' THEN 5000.00
-           WHEN 'YC-000002' THEN 5000.00
-           WHEN 'YC-000003' THEN 10000.00
-           WHEN 'YC-000004' THEN 5000.00
-           ELSE 0.00
-       END
-FROM users
-WHERE member_number IN ('YC-000001','YC-000002','YC-000003','YC-000004','YC-ADMIN')
-ON CONFLICT (user_id) DO NOTHING;
+-- Sub-accounts for test members
+WITH seeded_users AS (
+    SELECT
+        id,
+        member_number,
+        LPAD(ROW_NUMBER() OVER (ORDER BY created_at)::text, 6, '0') AS suffix,
+        CASE member_number
+            WHEN 'YC-000001' THEN 50000.00
+            WHEN 'YC-000002' THEN 25000.00
+            WHEN 'YC-000003' THEN 75000.00
+            WHEN 'YC-000004' THEN 10000.00
+            ELSE 0.00
+        END AS transactional_balance,
+        CASE member_number
+            WHEN 'YC-000001' THEN 5000.00
+            WHEN 'YC-000002' THEN 5000.00
+            WHEN 'YC-000003' THEN 10000.00
+            WHEN 'YC-000004' THEN 5000.00
+            ELSE 0.00
+        END AS shared_balance
+    FROM users
+    WHERE member_number IN ('YC-000001','YC-000002','YC-000003','YC-000004','YC-ADMIN')
+),
+account_rows AS (
+    SELECT id AS user_id, 'SHR-' || suffix AS account_number, 'shared'::account_type AS account_type, shared_balance AS balance, shared_balance AS shares
+    FROM seeded_users
+    UNION ALL
+    SELECT id AS user_id, 'TXN-' || suffix AS account_number, 'transactional'::account_type AS account_type, transactional_balance AS balance, 0.00 AS shares
+    FROM seeded_users
+    UNION ALL
+    SELECT id AS user_id, 'BOF-' || suffix AS account_number, 'backoffice'::account_type AS account_type, 0.00 AS balance, 0.00 AS shares
+    FROM seeded_users
+)
+INSERT INTO accounts (user_id, account_number, account_type, balance, shares)
+SELECT user_id, account_number, account_type, balance, shares
+FROM account_rows
+ON CONFLICT (user_id, account_type) DO NOTHING;
 
 -- Sample messages
 INSERT INTO messages (user_id, title, body)

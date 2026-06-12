@@ -5,13 +5,12 @@ const {
     findUserByPhone,
     findUserById,
     createUser,
-    createAccount,
+    createMemberAccounts,
     getNextSequence,
     updatePin,
 } = require('../queries/auth.queries');
 const {
     generateMemberNumber,
-    generateAccountNumber,
 } = require('../utils/helpers');
 
 const SALT_ROUNDS = 10;
@@ -23,10 +22,10 @@ const register = async ({ fullName, phone, pin, idNumber, email }) => {
     const pinHash  = await bcrypt.hash(pin, SALT_ROUNDS);
     const seq      = await getNextSequence('users', 'id');
     const memberNo = generateMemberNumber(seq);
-    const accNo    = generateAccountNumber(seq);
 
-    const user    = await createUser({ fullName, phone, pinHash, idNumber, email, memberNumber: memberNo });
-    const account = await createAccount(user.id, accNo);
+    const user     = await createUser({ fullName, phone, pinHash, idNumber, email, memberNumber: memberNo });
+    const accounts = await createMemberAccounts(user.id, seq);
+    const account  = accounts.find((acc) => acc.account_type === 'transactional') || accounts[0];
 
     const token = jwt.sign(
         { id: user.id, phone: user.phone, role: user.role },
