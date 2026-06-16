@@ -169,6 +169,48 @@ const mobileMoneyTransfer = async (userId, { amount, recipientPhone, description
     }
 };
 
+const internalTransfer = async (userId, { amount, fromAccountType, toAccountType, description }) => {
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        const fromAccount = await getMemberAccount(userId, fromAccountType, MEMBER_MANAGED_ACCOUNT_TYPES);
+        const toAccount = await getMemberAccount(userId, toAccountType, MEMBER_MANAGED_ACCOUNT_TYPES);
+
+        if (fromAccount.id === toAccount.id) throw { statusCode: 400, message: 'Cannot transfer to the same account' };
+
+        const fromBalanceBefore = parseFloat(fromAccount.balance);
+        if (fromBalanceBefore < parseFloat(amount)) throw { statusCode: 400, message: 'Insufficient balance' };
+
+        const fromBalanceAfter = fromBalanceBefore - parseFloat(amount);
+        const toBalanceBefore = parseFloat(toAccount.balance);
+        const toBalanceAfter = toBalanceBefore + parseFloat(amount);
+
+        await updateBalance(client, fromAccount.id, fromBalanceAfter);
+        await updateBalance(client, toAccount.id, toBalanceAfter);
+        if (toAccount.account_type === 'shared') await updateShares(client, toAccount.id, toBalanceAfter);
+
+        const txn = await createTransaction(client, {
+            accountId: fromAccount.id,
+            userId,
+            type: 'internal_transfer',
+            amount,
+            balanceBefore: fromBalanceBefore,
+            balanceAfter: fromBalanceAfter,
+            status: 'completed',
+            reference: generateReference(),
+            description: description || `Transfer from ${fromAccount.account_type} to ${toAccount.account_type}`,
+        });
+
+        await client.query('COMMIT');
+        return txn;
+    } catch (err) {
+        await client.query('ROLLBACK');
+        throw err;
+    } finally {
+        client.release();
+    }
+};
+
 const savingsTransfer = async (userId, { amount, description }) => {
     const client = await pool.connect();
     try {
@@ -285,4 +327,4 @@ const getStatement = async (userId, { limit = 20, offset = 0, type, accountType 
     return getTransactionsByAccount(account.id, { limit, offset, type });
 };
 
-module.exports = { deposit, withdraw, bankTransfer, mobileMoneyTransfer, savingsTransfer, buyAirtime, payUtility, getStatement };
+module.exports = { deposit, withdraw, bankTransfer, mobileMoneyTransfer, savingsTransfer, internalTransfer, buyAirtime, payUtility, getStatement };

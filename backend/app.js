@@ -8,7 +8,10 @@ const authRoutes        = require('./routes/auth.routes');
 const accountRoutes     = require('./routes/account.routes');
 const transactionRoutes = require('./routes/transaction.routes');
 const loanRoutes        = require('./routes/loan.routes');
+const adminRoutes       = require('./routes/admin.routes');
+const reportRoutes      = require('./routes/report.routes');
 const mpesaRoutes       = require('./routes/mpesa.routes');
+const notificationRoutes = require('./routes/notification.routes');
 const messageRoutes     = require('./routes/message.routes');
 const errorMiddleware   = require('./middleware/error.middleware');
 
@@ -40,7 +43,10 @@ app.use('/api/auth',         authLimiter,  authRoutes);
 app.use('/api/accounts',     apiLimiter,   accountRoutes);
 app.use('/api/transactions', apiLimiter,   transactionRoutes);
 app.use('/api/loans',        apiLimiter,   loanRoutes);
+app.use('/api/admin',        apiLimiter,   adminRoutes);
+app.use('/api/reports',      apiLimiter,   reportRoutes);
 app.use('/api/mpesa',        mpesaLimiter, mpesaRoutes);
+app.use('/api/notifications', apiLimiter,   notificationRoutes);
 app.use('/api/messages',     apiLimiter,   messageRoutes);
 
 // ── 404 handler ───────────────────────────────────────────

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getMyAccount, getProfile, getStatement } from '../../api/services';
 import { PageHeader, formatKES, StatusBadge, EmptyState } from '../../components/ui/index';
-import { ArrowLeft, ReceiptText, Wallet, TrendingUp, CreditCard, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
+import { ArrowLeft, ReceiptText, Wallet, TrendingUp, CreditCard, ArrowDownLeft, ArrowUpRight, Filter } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -11,25 +11,39 @@ const getTxnLabel = (type) => {
   return type?.replace(/_/g, ' ');
 };
 
+const ACCOUNT_TYPES = [
+  { value: 'transactional', label: 'Transactional (TXN)' },
+  { value: 'shared', label: 'Share Capital (SHR)' },
+  { value: 'backoffice', label: 'Backoffice (BOF)' },
+];
+
 export default function AccountStatements() {
   const { updateUser } = useAuth();
   const navigate = useNavigate();
   const [account, setAccount] = useState(null);
+  const [subAccounts, setSubAccounts] = useState([]);
   const [statements, setStatements] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [accountType, setAccountType] = useState('transactional');
+  const [filter, setFilter] = useState('');
 
   useEffect(() => {
-    Promise.all([getMyAccount(), getProfile(), getStatement({ limit: 50 })])
+    setLoading(true);
+    Promise.all([getMyAccount(), getProfile(), getStatement({ limit: 50, accountType })])
       .then(([accountRes, profileRes, stmtRes]) => {
-        setAccount(accountRes.data.data);
+        const data = accountRes.data.data;
+        setAccount(data);
+        setSubAccounts(data.sub_accounts || []);
         updateUser(profileRes.data.data);
         setStatements(stmtRes.data.data?.transactions || []);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [updateUser]);
+  }, [accountType]);
 
   const isCredit = (type) => ['deposit', 'loan_disbursement'].includes(type);
+
+  const getSubAccount = (type) => subAccounts.find(a => a.account_type === type);
 
   if (loading) {
     return (
@@ -39,11 +53,13 @@ export default function AccountStatements() {
     );
   }
 
+  const currentSub = getSubAccount(accountType);
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Account Statements"
-        subtitle="View your account activity and balances"
+        subtitle="View your account activity by sub-account"
         action={
           <button
             type="button"
@@ -56,36 +72,82 @@ export default function AccountStatements() {
         }
       />
 
+      {/* Sub-Account Selector */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {ACCOUNT_TYPES.map(({ value, label }) => {
+          const sub = getSubAccount(value);
+          const isActive = accountType === value;
+          const colorMap = {
+            transactional: { border: 'border-blue-300', bg: 'bg-blue-50', text: 'text-blue-700' },
+            shared: { border: 'border-green-300', bg: 'bg-green-50', text: 'text-green-700' },
+            backoffice: { border: 'border-purple-300', bg: 'bg-purple-50', text: 'text-purple-700' },
+          };
+          const c = colorMap[value] || colorMap.transactional;
+
+          return (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setAccountType(value)}
+              className={`rounded-2xl border-2 p-4 text-left transition-all hover:shadow-md ${
+                isActive ? `${c.border} ${c.bg} shadow-sm` : 'border-slate-100 bg-white'
+              }`}
+            >
+              <p className={`text-xs font-semibold uppercase tracking-wide ${isActive ? c.text : 'text-slate-500'}`}>{label}</p>
+              <p className="text-lg font-bold text-slate-800 mt-1">{formatKES(sub?.balance || 0)}</p>
+              <p className="text-xs text-slate-400 mt-0.5 font-mono">{sub?.account_number || '—'}</p>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
           <div className="flex items-center gap-2 text-slate-500 text-sm">
             <Wallet size={16} className="text-blue-600" />
             Current Balance
           </div>
-          <p className="text-2xl font-bold text-slate-800 mt-2">{formatKES(account?.balance)}</p>
+          <p className="text-2xl font-bold text-slate-800 mt-2">{formatKES(currentSub?.balance || 0)}</p>
         </div>
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
           <div className="flex items-center gap-2 text-slate-500 text-sm">
             <TrendingUp size={16} className="text-green-600" />
             Share Capital
           </div>
-          <p className="text-2xl font-bold text-slate-800 mt-2">{formatKES(account?.shares)}</p>
+          <p className="text-2xl font-bold text-slate-800 mt-2">{formatKES(currentSub?.shares || account?.shares || 0)}</p>
         </div>
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
           <div className="flex items-center gap-2 text-slate-500 text-sm">
             <CreditCard size={16} className="text-amber-600" />
             Account Number
           </div>
-          <p className="text-lg font-bold text-slate-800 mt-2 truncate">{account?.account_number || '—'}</p>
+          <p className="text-lg font-bold text-slate-800 mt-2 truncate">{currentSub?.account_number || '—'}</p>
         </div>
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-50">
-          <h3 className="font-bold text-slate-800 flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-3 px-6 py-4 border-b border-slate-50">
+          <h3 className="font-bold text-slate-800 flex items-center gap-2 flex-1">
             <ReceiptText size={18} className="text-blue-600" />
             Statement Details
           </h3>
+          <div className="flex items-center gap-2">
+            <Filter size={14} className="text-slate-400" />
+            <select className="text-sm border border-slate-200 rounded-lg px-2 py-1.5 outline-none"
+              value={filter} onChange={(e) => setFilter(e.target.value)}>
+              <option value="">All Types</option>
+              <option value="deposit">Deposits</option>
+              <option value="withdrawal">Withdrawals</option>
+              <option value="bank_transfer">Bank Transfers</option>
+              <option value="internal_transfer">Mobile Money Transfers</option>
+              <option value="savings_transfer">Savings Transfers</option>
+              <option value="airtime">Airtime</option>
+              <option value="utility_payment">Utilities</option>
+              <option value="loan_disbursement">Loan Disbursements</option>
+              <option value="loan_repayment">Loan Repayments</option>
+            </select>
+          </div>
           <span className="text-xs text-slate-400">{statements.length} transactions</span>
         </div>
 

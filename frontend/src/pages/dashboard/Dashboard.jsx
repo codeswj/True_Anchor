@@ -2,14 +2,21 @@ import { useEffect, useState } from 'react';
 import { getMyAccount, getStatement, getMyLoans, getMyLoanLimit } from '../../api/services';
 import { useAuth } from '../../context/AuthContext';
 import { StatCard, formatKES, StatusBadge } from '../../components/ui/index';
-import { Wallet, TrendingUp, HandCoins, ArrowUpRight, ArrowDownLeft, ArrowLeftRight, Eye, EyeOff } from 'lucide-react';
+import { Wallet, TrendingUp, HandCoins, ArrowUpRight, ArrowDownLeft, ArrowLeftRight, Eye, EyeOff, PiggyBank, Building2, CreditCard } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+
+const ACCOUNT_META = {
+  shared: { label: 'Share Capital', icon: PiggyBank, color: 'green', desc: 'Savings & dividends' },
+  transactional: { label: 'Transactional', icon: Wallet, color: 'blue', desc: 'Deposits & withdrawals' },
+  backoffice: { label: 'Backoffice', icon: Building2, color: 'purple', desc: 'Fees & adjustments' },
+};
 
 export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [account, setAccount] = useState(null);
+  const [subAccounts, setSubAccounts] = useState([]);
   const [txns, setTxns] = useState([]);
   const [loans, setLoans] = useState([]);
   const [loanLimit, setLoanLimit] = useState(0);
@@ -23,7 +30,9 @@ export default function Dashboard() {
       getMyLoans(),
       getMyLoanLimit(),
     ]).then(([acc, stmt, lns, limit]) => {
-      setAccount(acc.data.data);
+      const data = acc.data.data;
+      setAccount(data);
+      setSubAccounts(data.sub_accounts || []);
       setTxns(stmt.data.data?.transactions || []);
       setLoans(lns.data.data || []);
       setLoanLimit(limit.data.data?.loanLimit || 0);
@@ -62,7 +71,7 @@ export default function Dashboard() {
         <div className="relative z-10">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-blue-200 text-sm font-medium">Account Balance</p>
+              <p className="text-blue-200 text-sm font-medium">Total Balance</p>
               <div className="flex items-center gap-3 mt-1">
                 <p className="text-4xl font-bold">
                   {hideBalance ? '••••••' : formatKES(account?.balance)}
@@ -71,7 +80,7 @@ export default function Dashboard() {
                   {hideBalance ? <Eye size={20} /> : <EyeOff size={20} />}
                 </button>
               </div>
-              <p className="text-blue-200 text-xs mt-1">{account?.account_number}</p>
+              <p className="text-blue-200 text-xs mt-1">{user?.member_number || account?.account_number}</p>
             </div>
             <div className="text-right">
               <p className="text-blue-200 text-xs">Share Capital</p>
@@ -94,9 +103,39 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Sub-Accounts Row */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {subAccounts.map((sub) => {
+          const meta = ACCOUNT_META[sub.account_type] || ACCOUNT_META.transactional;
+          const IconComponent = meta.icon;
+          const colorMap = { green: 'bg-green-50 text-green-700 border-green-200', blue: 'bg-blue-50 text-blue-700 border-blue-200', purple: 'bg-purple-50 text-purple-700 border-purple-200' };
+          const colorClasses = colorMap[meta.color] || colorMap.blue;
+          const iconColorMap = { green: 'bg-green-600', blue: 'bg-blue-600', purple: 'bg-purple-600' };
+          const iconColor = iconColorMap[meta.color] || iconColorMap.blue;
+          
+          return (
+            <div key={sub.id} className={`rounded-2xl border ${colorClasses} shadow-sm p-5`}>
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide">{meta.label}</p>
+                  <p className="text-xs opacity-70 mt-0.5">{sub.account_number}</p>
+                </div>
+                <div className={`w-10 h-10 ${iconColor} rounded-xl flex items-center justify-center shadow-sm`}>
+                  <IconComponent size={18} className="text-white" />
+                </div>
+              </div>
+              <p className="text-2xl font-bold mt-1">
+                {hideBalance ? '••••••' : formatKES(sub.balance)}
+              </p>
+              <p className="text-xs opacity-60 mt-1">{meta.desc}</p>
+            </div>
+          );
+        })}
+      </div>
+
       {/* Stats Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard label="Savings Balance" value={formatKES(account?.balance)} icon={Wallet} color="blue" />
+        <StatCard label="Total Balance" value={formatKES(account?.balance)} icon={Wallet} color="blue" />
         <StatCard label="Share Capital" value={formatKES(account?.shares)} icon={TrendingUp} color="green" />
         <StatCard label="Loan Limit" value={formatKES(loanLimit)} icon={HandCoins} color="purple" />
         <StatCard label="Active Loans" value={activeLoans.length} sub={activeLoans.length === 0 ? 'No active loans' : `${activeLoans.length} loan(s)`} icon={HandCoins} color="orange" />

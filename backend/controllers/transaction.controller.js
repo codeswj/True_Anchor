@@ -49,6 +49,19 @@ const mobileMoneyTransfer = async (req, res, next) => {
     }
 };
 
+const internalTransfer = async (req, res, next) => {
+    try {
+        const { amount, fromAccountType, toAccountType, description } = req.body;
+        if (!amount || amount <= 0) return error(res, 'Valid amount is required', 400);
+        if (!fromAccountType || !toAccountType) return error(res, 'fromAccountType and toAccountType are required', 400);
+        const data = await txnService.internalTransfer(req.user.id, { amount, fromAccountType, toAccountType, description });
+        return success(res, data, 'Internal transfer successful', 201);
+    } catch (err) {
+        if (err.statusCode) return error(res, err.message, err.statusCode);
+        next(err);
+    }
+};
+
 const savingsTransfer = async (req, res, next) => {
     try {
         const { amount, description } = req.body;
@@ -99,4 +112,4 @@ const getStatement = async (req, res, next) => {
     }
 };
 
-module.exports = { deposit, withdraw, bankTransfer, mobileMoneyTransfer, savingsTransfer, buyAirtime, payUtility, getStatement };
+module.exports = { deposit, withdraw, bankTransfer, mobileMoneyTransfer, savingsTransfer, internalTransfer, buyAirtime, payUtility, getStatement };

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { getStatement, withdraw, bankTransfer, initiateMpesa } from '../../api/services';
+import { getStatement, getMyAccount, deposit, withdraw, bankTransfer, mobileMoneyTransfer, initiateMpesa } from '../../api/services';
 import { PageHeader, Modal, formatKES, StatusBadge } from '../../components/ui/index';
-import { ArrowDownLeft, ArrowUpRight, ArrowLeftRight, Filter, HandCoins } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, ArrowLeftRight, Filter, HandCoins, Wallet, PiggyBank, Building2, Phone, Banknote } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
@@ -27,6 +27,7 @@ export default function Transactions() {
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({});
   const [filter, setFilter] = useState('');
+  const [subAccounts, setSubAccounts] = useState([]);
 
   const fetchTxns = () => {
     setLoading(true);
@@ -36,9 +37,14 @@ export default function Transactions() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchTxns(); }, [filter]);
+  useEffect(() => {
+    fetchTxns();
+    getMyAccount().then(res => {
+      setSubAccounts(res.data.data?.sub_accounts || []);
+    }).catch(() => {});
+  }, [filter]);
 
-  const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
+  const setFormField = (k) => (e) => setForm({ ...form, [k]: e.target.value });
 
   const handleAction = async (e) => {
     e.preventDefault();
@@ -46,12 +52,44 @@ export default function Transactions() {
     try {
       const amount = parseFloat(form.amount);
       switch (activeAction) {
-        case 'deposit':  await initiateMpesa({ phone: form.mpesaPhone, amount, description: form.description }); break;
-        case 'withdraw': await withdraw({ amount, description: form.description }); break;
-        case 'transfer': await bankTransfer({ amount, bankName: form.bankName, bankAccount: form.bankAccount, description: form.description }); break;
+        case 'deposit':
+          if (form.depositMethod === 'cash') {
+            await deposit({
+              amount,
+              description: form.description || 'Cash deposit',
+              accountType: form.accountType || 'transactional',
+            });
+            toast.success('Cash deposit successful!');
+          } else {
+            await initiateMpesa({ phone: form.mpesaPhone, amount, description: form.description });
+            toast.success('M-Pesa prompt sent. Enter your PIN on your phone to complete.');
+          }
+          break;
+        case 'withdraw':
+          await withdraw({ amount, description: form.description, accountType: form.accountType || 'transactional' });
+          toast.success('Withdrawal successful!');
+          break;
+        case 'transfer':
+          if (form.transferType === 'mobile_money') {
+            await mobileMoneyTransfer({
+              recipientPhone: form.mpesaPhone,
+              amount,
+              description: form.description,
+              accountType: form.accountType || 'transactional',
+            });
+          } else {
+            await bankTransfer({
+              amount,
+              bankName: form.bankName,
+              bankAccount: form.bankAccount,
+              description: form.description,
+              accountType: form.accountType || 'transactional',
+            });
+          }
+          toast.success('Transfer successful!');
+          break;
         default: break;
       }
-      toast.success(activeAction === 'deposit' ? 'M-Pesa prompt sent. Enter your PIN to complete deposit.' : 'Transaction successful!');
       setActiveAction('');
       setForm({});
       fetchTxns();
@@ -66,43 +104,96 @@ export default function Transactions() {
     const amountField = (
       <div key="amount">
         <label className="block text-sm font-semibold text-slate-700 mb-1.5">Amount (KES) *</label>
-        <input type="number" className="input-field" placeholder="0.00" value={form.amount || ''} onChange={set('amount')} required min="1" />
+        <input type="number" className="input-field" placeholder="0.00" value={form.amount || ''} onChange={setFormField('amount')} required min="1" />
       </div>
     );
     const descField = (
       <div key="desc">
         <label className="block text-sm font-semibold text-slate-700 mb-1.5">Description</label>
-        <input type="text" className="input-field" placeholder="Optional note" value={form.description || ''} onChange={set('description')} />
+        <input type="text" className="input-field" placeholder="Optional note" value={form.description || ''} onChange={setFormField('description')} />
       </div>
     );
     const mpesaPhoneField = (
       <div key="mpesaPhone">
         <label className="block text-sm font-semibold text-slate-700 mb-1.5">M-Pesa Phone Number *</label>
-        <input
-          type="tel"
-          className="input-field"
-          placeholder="07XX XXX XXX"
-          value={form.mpesaPhone || ''}
-          onChange={set('mpesaPhone')}
-          required
-        />
+        <input type="tel" className="input-field" placeholder="07XX XXX XXX" value={form.mpesaPhone || ''} onChange={setFormField('mpesaPhone')} required />
       </div>
     );
+    const accountTypeField = (allowed = ['transactional', 'shared']) => (
+      <div key="accountType">
+        <label className="block text-sm font-semibold text-slate-700 mb-1.5">Account Type</label>
+        <select className="input-field" value={form.accountType || 'transactional'} onChange={setFormField('accountType')}>
+          {allowed.map(t => (
+            <option key={t} value={t}>{t === 'transactional' ? 'Transactional (TXN)' : 'Share Capital (SHR)'}</option>
+          ))}
+        </select>
+        {(() => {
+          const sub = subAccounts.find(a => a.account_type === (form.accountType || 'transactional'));
+          return sub ? <p className="text-xs text-slate-400 mt-1">Balance: {formatKES(sub.balance)}</p> : null;
+        })()}
+      </div>
+    );
+
     switch (activeAction) {
-      case 'deposit':  return [mpesaPhoneField, amountField, descField];
-      case 'withdraw': return [amountField, descField];
-      case 'transfer': return [
-        amountField,
-        <div key="bank">
-          <label className="block text-sm font-semibold text-slate-700 mb-1.5">Bank Name *</label>
-          <input type="text" className="input-field" placeholder="e.g. KCB" value={form.bankName || ''} onChange={set('bankName')} required />
-        </div>,
-        <div key="acc">
-          <label className="block text-sm font-semibold text-slate-700 mb-1.5">Account Number *</label>
-          <input type="text" className="input-field" placeholder="Bank account number" value={form.bankAccount || ''} onChange={set('bankAccount')} required />
-        </div>,
-        descField,
-      ];
+      case 'deposit':
+        return [
+          <div key="depositMethod">
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Deposit Method</label>
+            <div className="flex gap-2">
+              <button type="button"
+                className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border-2 transition-colors flex items-center justify-center gap-2 ${form.depositMethod === 'mpesa' || !form.depositMethod ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 text-slate-600'}`}
+                onClick={() => setForm({ ...form, depositMethod: 'mpesa' })}>
+                <Phone size={16} /> M-Pesa
+              </button>
+              <button type="button"
+                className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border-2 transition-colors flex items-center justify-center gap-2 ${form.depositMethod === 'cash' ? 'border-green-500 bg-green-50 text-green-700' : 'border-slate-200 text-slate-600'}`}
+                onClick={() => setForm({ ...form, depositMethod: 'cash' })}>
+                <Banknote size={16} /> Cash
+              </button>
+            </div>
+          </div>,
+          ...(form.depositMethod === 'cash' ? [accountTypeField()] : [mpesaPhoneField]),
+          amountField,
+          descField,
+        ];
+      case 'withdraw':
+        return [accountTypeField(), amountField, descField];
+      case 'transfer':
+        return [
+          <div key="transferType">
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Transfer Type</label>
+            <div className="flex gap-2">
+              <button type="button"
+                className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border-2 transition-colors ${form.transferType === 'mobile_money' || !form.transferType ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 text-slate-600'}`}
+                onClick={() => setForm({ ...form, transferType: 'mobile_money' })}>
+                Mobile Money
+              </button>
+              <button type="button"
+                className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border-2 transition-colors ${form.transferType === 'bank' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 text-slate-600'}`}
+                onClick={() => setForm({ ...form, transferType: 'bank' })}>
+                Bank Transfer
+              </button>
+            </div>
+          </div>,
+          accountTypeField(),
+          amountField,
+          ...(form.transferType === 'bank' ? [
+            <div key="bank">
+              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Bank Name *</label>
+              <input type="text" className="input-field" placeholder="e.g. KCB" value={form.bankName || ''} onChange={setFormField('bankName')} required />
+            </div>,
+            <div key="acc">
+              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Account Number *</label>
+              <input type="text" className="input-field" placeholder="Bank account number" value={form.bankAccount || ''} onChange={setFormField('bankAccount')} required />
+            </div>,
+          ] : [
+            <div key="mpesaPhone">
+              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Mobile Number *</label>
+              <input type="tel" className="input-field" placeholder="07XX XXX XXX" value={form.mpesaPhone || ''} onChange={setFormField('mpesaPhone')} required />
+            </div>,
+          ]),
+          descField,
+        ];
       default: return [];
     }
   };
@@ -143,6 +234,32 @@ export default function Transactions() {
           ))}
         </div>
       </div>
+
+      {/* Sub-Account Summary */}
+      {subAccounts.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {subAccounts.map((sub) => {
+            const colors = {
+              transactional: { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700', icon: Wallet },
+              shared: { bg: 'bg-green-50', border: 'border-green-200', text: 'text-green-700', icon: PiggyBank },
+              backoffice: { bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-700', icon: Building2 },
+            };
+            const c = colors[sub.account_type] || colors.transactional;
+            const Icon = c.icon;
+
+            return (
+              <div key={sub.id} className={`${c.bg} ${c.border} border rounded-2xl p-4`}>
+                <div className="flex items-center gap-2 mb-1">
+                  <Icon size={16} className={c.text} />
+                  <span className={`text-xs font-bold uppercase ${c.text}`}>{sub.account_type}</span>
+                </div>
+                <p className="text-lg font-bold text-slate-800">{formatKES(sub.balance)}</p>
+                <p className="text-xs text-slate-400 font-mono">{sub.account_number}</p>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Transaction History */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100">

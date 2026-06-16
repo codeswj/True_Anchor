@@ -11,10 +11,13 @@ import Loans from './pages/loans/Loans';
 import LoanDetail from './pages/loans/LoanDetail';
 import Account from './pages/account/Account';
 import AccountStatements from './pages/account/AccountStatements';
+import Notifications from './pages/notifications/Notifications';
 import Messages from './pages/messages/Messages';
 import Settings from './pages/Settings';
 import AdminOverview from './pages/admin/AdminOverview';
 import AdminLoans from './pages/admin/AdminLoans';
+import AdminMembers from './pages/admin/AdminMembers';
+import AdminReports from './pages/admin/AdminReports';
 import Landing from './pages/Landing';
 
 function AdminGuard({ children }) {
@@ -48,10 +51,13 @@ function AppRoutes() {
         <Route path="/loans/:id"     element={<LoanDetail />} />
         <Route path="/account"       element={<Account />} />
         <Route path="/account/statements" element={<AccountStatements />} />
+        <Route path="/notifications" element={<Notifications />} />
         <Route path="/messages"      element={<Messages />} />
         <Route path="/settings"      element={<Settings />} />
         <Route path="/admin"         element={<AdminGuard><AdminOverview /></AdminGuard>} />
         <Route path="/admin/loans"   element={<AdminGuard><AdminLoans /></AdminGuard>} />
+        <Route path="/admin/members" element={<AdminGuard><AdminMembers /></AdminGuard>} />
+        <Route path="/admin/reports" element={<AdminGuard><AdminReports /></AdminGuard>} />
       </Route>
 
       <Route path="/" element={<Landing />} />

@@ -17,6 +17,7 @@ export const withdraw = (data) => api.post('/transactions/withdraw', data);
 export const bankTransfer = (data) => api.post('/transactions/bank-transfer', data);
 export const mobileMoneyTransfer = (data) => api.post('/transactions/mobile-money-transfer', data);
 export const savingsTransfer = (data) => api.post('/transactions/savings-transfer', data);
+export const internalTransfer = (data) => api.post('/transactions/internal-transfer', data);
 export const buyAirtime = (data) => api.post('/transactions/airtime', data);
 export const payUtility = (data) => api.post('/transactions/utility', data);
 export const getStatement = (params) => api.get('/transactions/statement', { params });
@@ -39,6 +40,18 @@ export const getUnreadCount = () => api.get('/messages/unread-count');
 export const markRead = (id) => api.put(`/messages/${id}/read`);
 export const markAllRead = () => api.put('/messages/read-all');
 export const deleteMessage = (id) => api.delete(`/messages/${id}`);
+
+// ADMIN
+export const adminListUsers = (params) => api.get('/admin/users', { params });
+export const adminGetUser = (id) => api.get(`/admin/users/${id}`);
+
+// REPORTS
+export const getGeneralReport = (params) => api.get('/reports/general', { params });
+export const getMembersReport = () => api.get('/reports/members');
+export const getMemberReportById = (id) => api.get(`/reports/members/${id}`);
+
+// NOTIFICATIONS
+export const getNotifications = () => api.get('/notifications');
 
 // MPESA
 export const initiateMpesa = (data) => api.post('/mpesa/stk-push', data);

@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import {
   LayoutDashboard, ArrowLeftRight, CreditCard, HandCoins,
   MessageSquare, Settings, LogOut, Users, BarChart3,
-  X
+  Bell, X
 } from 'lucide-react';
 import logo from '../../assets/ilovia-capital-logo.jpg';
 
@@ -12,6 +12,7 @@ const NAV_MEMBER = [
   { to: '/transactions', icon: ArrowLeftRight, label: 'Transact' },
   { to: '/account', icon: CreditCard, label: 'My Account' },
   { to: '/loans', icon: HandCoins, label: 'Loans' },
+  { to: '/notifications', icon: Bell, label: 'Notifications' },
   { to: '/messages', icon: MessageSquare, label: 'Messages' },
   { to: '/settings', icon: Settings, label: 'Settings' },
 ];
@@ -21,6 +22,7 @@ const NAV_ADMIN = [
   { to: '/admin/loans', icon: HandCoins, label: 'Loan Requests' },
   { to: '/admin/members', icon: Users, label: 'Members' },
   { to: '/admin/reports', icon: BarChart3, label: 'Reports' },
+  { to: '/notifications', icon: Bell, label: 'Notifications' },
   { to: '/settings', icon: Settings, label: 'Settings' },
 ];
 

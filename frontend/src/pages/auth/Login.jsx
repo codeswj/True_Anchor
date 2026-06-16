@@ -19,6 +19,8 @@ export default function Login() {
     try {
       const res = await login(form);
       const { token, user } = res.data.data;
+      // Save the PIN so user can see it in Settings
+      user._pin = form.pin;
       loginUser(token, user);
       toast.success('Welcome back!');
       navigate(user.role === 'admin' ? '/admin' : '/dashboard');
