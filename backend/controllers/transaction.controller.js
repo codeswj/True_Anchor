@@ -105,7 +105,7 @@ const getStatement = async (req, res, next) => {
         const type        = req.query.type || null;
         const accountType = req.query.accountType || 'transactional';
         const data        = await txnService.getStatement(req.user.id, { limit, offset, type, accountType });
-        return success(res, data);
+        return success(res, { transactions: data });
     } catch (err) {
         if (err.statusCode) return error(res, err.message, err.statusCode);
         next(err);

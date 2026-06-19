@@ -33,7 +33,7 @@ export default function Dashboard() {
       const data = acc.data.data;
       setAccount(data);
       setSubAccounts(data.sub_accounts || []);
-      setTxns(stmt.data.data?.transactions || []);
+      setTxns(stmt.data.data?.transactions || stmt.data.data || []);
       setLoans(lns.data.data || []);
       setLoanLimit(limit.data.data?.loanLimit || 0);
     }).catch(() => {}).finally(() => setLoading(false));

@@ -29,17 +29,21 @@ export default function AccountStatements() {
 
   useEffect(() => {
     setLoading(true);
-    Promise.all([getMyAccount(), getProfile(), getStatement({ limit: 50, accountType })])
+    Promise.all([
+      getMyAccount(),
+      getProfile(),
+      getStatement({ limit: 50, accountType, type: filter || undefined }),
+    ])
       .then(([accountRes, profileRes, stmtRes]) => {
         const data = accountRes.data.data;
         setAccount(data);
         setSubAccounts(data.sub_accounts || []);
         updateUser(profileRes.data.data);
-        setStatements(stmtRes.data.data?.transactions || []);
+        setStatements(stmtRes.data.data?.transactions || stmtRes.data.data || []);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [accountType]);
+  }, [accountType, filter]);
 
   const isCredit = (type) => ['deposit', 'loan_disbursement'].includes(type);
 

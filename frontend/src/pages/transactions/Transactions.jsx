@@ -32,7 +32,7 @@ export default function Transactions() {
   const fetchTxns = () => {
     setLoading(true);
     getStatement({ limit: 50, type: filter || undefined })
-      .then(res => setTxns(res.data.data?.transactions || []))
+      .then(res => setTxns(res.data.data?.transactions || res.data.data || []))
       .catch(() => {})
       .finally(() => setLoading(false));
   };
