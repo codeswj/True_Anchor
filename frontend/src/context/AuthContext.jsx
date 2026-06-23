@@ -11,9 +11,11 @@ const normalizeUser = (userData) => {
   const accountId = userData.accountId ?? userData.account_id;
   const accountNumber = userData.accountNumber ?? userData.account_number;
   const createdAt = userData.createdAt ?? userData.created_at;
+  const role = String(userData.role || 'member').trim().toLowerCase();
 
   return {
     ...userData,
+    role,
     fullName,
     full_name: fullName,
     memberNumber,

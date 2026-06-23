@@ -6,6 +6,13 @@ import toast from 'react-hot-toast';
 import { Eye, EyeOff, Phone, Lock } from 'lucide-react';
 import logo from '../../assets/ilovia-capital-logo.jpg';
 
+function homeForRole(role) {
+  const normalizedRole = String(role || 'member').trim().toLowerCase();
+  if (normalizedRole === 'admin') return '/admin';
+  if (normalizedRole === 'staff') return '/staff';
+  return '/dashboard';
+}
+
 export default function Login() {
   const { loginUser } = useAuth();
   const navigate = useNavigate();
@@ -23,7 +30,7 @@ export default function Login() {
       user._pin = form.pin;
       loginUser(token, user);
       toast.success('Welcome back!');
-      navigate(user.role === 'admin' ? '/admin' : '/dashboard');
+      navigate(homeForRole(user.role));
     } catch (err) {
       toast.error(err.response?.data?.message || 'Login failed');
     } finally {

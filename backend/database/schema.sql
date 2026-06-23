@@ -17,10 +17,25 @@ CREATE TABLE IF NOT EXISTS users (
     id_number       VARCHAR(20)         UNIQUE,           -- National ID
     email           VARCHAR(150)        UNIQUE,
     member_number   VARCHAR(30)         UNIQUE,           -- e.g. YC-001
-    role            VARCHAR(20)         NOT NULL DEFAULT 'member', -- member | admin
+    role            VARCHAR(20)         NOT NULL DEFAULT 'member', -- member | staff | admin
     is_active       BOOLEAN             NOT NULL DEFAULT TRUE,
     created_at      TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at      TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Extra member details captured by staff during onboarding.
+CREATE TABLE IF NOT EXISTS member_profiles (
+    id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id                 UUID                NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+    kra_pin                 VARCHAR(30),
+    marital_status          VARCHAR(30),
+    date_of_birth           DATE,
+    gender                  VARCHAR(30),
+    physical_address        TEXT,
+    signature_file_path     TEXT,
+    passport_photo_file_path TEXT,
+    created_at              TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at              TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- ============================================================
@@ -221,6 +236,7 @@ CREATE INDEX IF NOT EXISTS idx_mpesa_user_id             ON mpesa_transactions(u
 
 CREATE INDEX IF NOT EXISTS idx_messages_user_id          ON messages(user_id);
 CREATE INDEX IF NOT EXISTS idx_messages_is_read          ON messages(is_read);
+CREATE INDEX IF NOT EXISTS idx_member_profiles_user_id   ON member_profiles(user_id);
 
 -- ============================================================
 -- AUTO-UPDATE updated_at TRIGGER
@@ -235,6 +251,10 @@ $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER trg_users_updated_at
     BEFORE UPDATE ON users
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+CREATE TRIGGER trg_member_profiles_updated_at
+    BEFORE UPDATE ON member_profiles
     FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 CREATE TRIGGER trg_accounts_updated_at

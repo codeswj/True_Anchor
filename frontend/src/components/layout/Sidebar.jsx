@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import {
   LayoutDashboard, ArrowLeftRight, CreditCard, HandCoins,
   MessageSquare, Settings, LogOut, Users, BarChart3,
-  Bell, X
+  Bell, X, Wallet, Receipt, FileText, Building2, Package, BookOpen
 } from 'lucide-react';
 import logo from '../../assets/ilovia-capital-logo.jpg';
 
@@ -22,6 +22,22 @@ const NAV_ADMIN = [
   { to: '/admin/loans', icon: HandCoins, label: 'Loan Requests' },
   { to: '/admin/members', icon: Users, label: 'Members' },
   { to: '/admin/reports', icon: BarChart3, label: 'Reports' },
+  { to: '/staff', icon: LayoutDashboard, label: 'Staff Portal' },
+  { to: '/notifications', icon: Bell, label: 'Notifications' },
+  { to: '/settings', icon: Settings, label: 'Settings' },
+];
+
+const NAV_STAFF = [
+  { to: '/staff', icon: LayoutDashboard, label: 'Staff Portal' },
+  { to: '/staff/membership', icon: Users, label: 'Membership' },
+  { to: '/staff/savings', icon: Wallet, label: 'Savings' },
+  { to: '/staff/loans', icon: HandCoins, label: 'Loans' },
+  { to: '/staff/payables', icon: Receipt, label: 'Payables' },
+  { to: '/staff/receivables', icon: FileText, label: 'Receivables' },
+  { to: '/staff/fixed-assets', icon: Building2, label: 'Fixed Assets' },
+  { to: '/staff/inventory', icon: Package, label: 'Inventory' },
+  { to: '/staff/chart-of-accounts', icon: BookOpen, label: 'Chart of Accounts' },
+  { to: '/staff/reports', icon: BarChart3, label: 'Reports' },
   { to: '/notifications', icon: Bell, label: 'Notifications' },
   { to: '/settings', icon: Settings, label: 'Settings' },
 ];
@@ -29,7 +45,8 @@ const NAV_ADMIN = [
 export default function Sidebar({ mobileOpen, onClose }) {
   const { user, logoutUser } = useAuth();
   const navigate = useNavigate();
-  const nav = user?.role === 'admin' ? NAV_ADMIN : NAV_MEMBER;
+  const role = String(user?.role || 'member').trim().toLowerCase();
+  const nav = role === 'admin' ? NAV_ADMIN : role === 'staff' ? NAV_STAFF : NAV_MEMBER;
 
   const handleLogout = () => {
     logoutUser();
@@ -75,9 +92,14 @@ export default function Sidebar({ mobileOpen, onClose }) {
               <p className="text-white text-sm font-semibold truncate">{user?.full_name || 'Member'}</p>
               <p className="text-blue-200 text-xs truncate">{user?.member_number || user?.phone || ''}</p>
             </div>
-            {user?.role === 'admin' && (
+            {role === 'admin' && (
               <span className="ml-auto flex-shrink-0 bg-yellow-400 text-yellow-900 text-xs px-1.5 py-0.5 rounded font-bold">
                 Admin
+              </span>
+            )}
+            {role === 'staff' && (
+              <span className="ml-auto flex-shrink-0 bg-cyan-300 text-cyan-950 text-xs px-1.5 py-0.5 rounded font-bold">
+                Staff
               </span>
             )}
           </div>
@@ -85,14 +107,16 @@ export default function Sidebar({ mobileOpen, onClose }) {
 
         {/* Nav */}
         <nav className="flex-1 px-3 py-4 overflow-y-auto">
-          {user?.role === 'admin' && (
-            <p className="text-blue-300 text-xs font-semibold uppercase tracking-widest px-3 mb-2">Admin</p>
+          {['admin', 'staff'].includes(role) && (
+            <p className="text-blue-300 text-xs font-semibold uppercase tracking-widest px-3 mb-2">
+              {role === 'admin' ? 'Admin' : 'Staff'}
+            </p>
           )}
           {nav.map(({ to, icon: Icon, label }) => (
             <NavLink
               key={to}
               to={to}
-              end={to === '/dashboard' || to === '/admin'}
+              end={to === '/dashboard' || to === '/admin' || to === '/staff'}
               onClick={onClose}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2.5 rounded-xl mb-1 text-sm font-medium transition-all
