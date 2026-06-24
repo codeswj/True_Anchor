@@ -24,4 +24,11 @@ const authorizeAdmin = (req, res, next) => {
     next();
 };
 
-module.exports = { authenticate, authorizeAdmin };
+const authorizeStaff = (req, res, next) => {
+    if (!['staff', 'admin'].includes(req.user?.role)) {
+        return error(res, 'Staff access required', 403);
+    }
+    next();
+};
+
+module.exports = { authenticate, authorizeAdmin, authorizeStaff };

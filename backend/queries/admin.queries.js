@@ -28,12 +28,14 @@ const getAllUsersWithDetails = async ({ limit = 100, offset = 0 } = {}) => {
              FROM accounts a
              WHERE a.user_id = ANY($1::uuid[])
              ORDER BY
-                CASE a.account_type::text
-                    WHEN 'shared' THEN 1
-                    WHEN 'transactional' THEN 2
-                    WHEN 'backoffice' THEN 3
-                    ELSE 4
-                END`,
+                 CASE a.account_type::text
+                     WHEN 'shared' THEN 1
+                     WHEN 'transactional' THEN 2
+                     WHEN 'savings' THEN 3
+                     WHEN 'loans' THEN 4
+                     WHEN 'backoffice' THEN 5
+                     ELSE 6
+                 END`,
             [userIds]
         );
 
@@ -114,12 +116,14 @@ const getUserByIdWithDetails = async (userId) => {
          FROM accounts a
          WHERE a.user_id = $1
          ORDER BY
-            CASE a.account_type::text
-                WHEN 'shared' THEN 1
-                WHEN 'transactional' THEN 2
-                WHEN 'backoffice' THEN 3
-                ELSE 4
-            END`,
+                 CASE a.account_type::text
+                     WHEN 'shared' THEN 1
+                     WHEN 'transactional' THEN 2
+                     WHEN 'savings' THEN 3
+                     WHEN 'loans' THEN 4
+                     WHEN 'backoffice' THEN 5
+                     ELSE 6
+                 END`,
         [userId]
     );
 

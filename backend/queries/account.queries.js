@@ -28,8 +28,10 @@ const getAccountsByUserId = async (userId) => {
             CASE a.account_type
                 WHEN 'shared' THEN 1
                 WHEN 'transactional' THEN 2
-                WHEN 'backoffice' THEN 3
-                ELSE 4
+                WHEN 'savings' THEN 3
+                WHEN 'loans' THEN 4
+                WHEN 'backoffice' THEN 5
+                ELSE 6
             END`,
         [userId]
     );

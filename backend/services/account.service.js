@@ -6,12 +6,16 @@ const getMyAccount = async (userId) => {
 
     const transactional = accounts.find((account) => account.account_type === 'transactional');
     const shared = accounts.find((account) => account.account_type === 'shared');
+    const savings = accounts.find((account) => account.account_type === 'savings');
+    const loansAccount = accounts.find((account) => account.account_type === 'loans');
     const primary = transactional || accounts[0];
 
     return {
         ...primary,
         balance: transactional?.balance || 0,
         shares: shared?.balance || shared?.shares || 0,
+        savingsBalance: savings?.balance || 0,
+        loansBalance: loansAccount?.balance || 0,
         subAccounts: accounts,
         sub_accounts: accounts,
     };

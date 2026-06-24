@@ -42,16 +42,17 @@ const createAccount = async (userId, accountNumber) => {
     return rows[0];
 };
 
-const createMemberAccounts = async (userId, sequence) => {
+const createMemberAccounts = async (userId, sequence, client = pool) => {
     const suffix = String(sequence).padStart(6, '0');
-    const { rows } = await pool.query(
+    const { rows } = await client.query(
         `INSERT INTO accounts (user_id, account_number, account_type)
          VALUES
             ($1, $2, 'shared'),
             ($1, $3, 'transactional'),
-            ($1, $4, 'backoffice')
+            ($1, $4, 'loans'),
+            ($1, $5, 'savings')
          RETURNING *`,
-        [userId, `SHR-${suffix}`, `TXN-${suffix}`, `BOF-${suffix}`]
+        [userId, `SHR-${suffix}`, `TXN-${suffix}`, `LON-${suffix}`, `SAV-${suffix}`]
     );
     return rows;
 };

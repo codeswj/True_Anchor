@@ -44,6 +44,8 @@ CREATE TABLE IF NOT EXISTS member_profiles (
 CREATE TYPE account_type AS ENUM (
     'shared',
     'transactional',
+    'loans',
+    'savings',
     'backoffice'
 );
 
