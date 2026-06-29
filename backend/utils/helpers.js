@@ -1,13 +1,24 @@
 const { v4: uuidv4 } = require('uuid');
 
-// Generate a member number e.g. YC-000123
+// Generate a member number e.g. IC-000123
 const generateMemberNumber = (sequence) => {
-    return `YC-${String(sequence).padStart(6, '0')}`;
+    return `IC-${String(sequence).padStart(6, '0')}`;
 };
 
-// Generate an account number e.g. TXN-000123
-const generateAccountNumber = (sequence, prefix = 'TXN') => {
-    return `${prefix}-${String(sequence).padStart(6, '0')}`;
+// Extract the numeric suffix from a member number (e.g. "IC-000123" → "000123")
+const getMemberSuffix = (memberNumber) => {
+    return memberNumber.split('-')[1] || String(memberNumber).padStart(6, '0');
+};
+
+// Generate sub-account number from member number with account type digit
+// Account type digits: 5=shares, 4=savings, 3=loans, 2=transactional
+// Example: member IC-000002 → shares IC-500002, savings IC-400002, loans IC-300002, transactional IC-200002
+const generateAccountNumber = (memberNumber, accountType) => {
+    const typeDigits = { shared: '5', savings: '4', loans: '3', transactional: '2' };
+    const digit = typeDigits[accountType] || '2';
+    const suffix = getMemberSuffix(memberNumber);
+    const modifiedSuffix = digit + suffix.substring(1);
+    return `IC-${modifiedSuffix}`;
 };
 
 // Generate a loan number e.g. LN-000123

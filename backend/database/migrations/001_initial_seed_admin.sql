@@ -8,7 +8,7 @@ VALUES (
     '0700000000',
     -- Default PIN: 0000 (bcrypt hash — change immediately after setup)
     '$2b$10$Kix/1ZYVOIpBjZjCQFJCueH4zH.PEpGfLR2C3gWjwAWtEq2FLm3pW',
-    'YC-ADMIN',
+    'IC-ADMIN',
     'admin'
 )
 ON CONFLICT (phone) DO NOTHING;

@@ -30,8 +30,7 @@ const getAccountsByUserId = async (userId) => {
                 WHEN 'transactional' THEN 2
                 WHEN 'savings' THEN 3
                 WHEN 'loans' THEN 4
-                WHEN 'backoffice' THEN 5
-                ELSE 6
+                ELSE 5
             END`,
         [userId]
     );

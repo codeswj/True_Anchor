@@ -24,7 +24,7 @@ const register = async ({ fullName, phone, pin, idNumber, email }) => {
     const memberNo = generateMemberNumber(seq);
 
     const user     = await createUser({ fullName, phone, pinHash, idNumber, email, memberNumber: memberNo });
-    const accounts = await createMemberAccounts(user.id, seq);
+    const accounts = await createMemberAccounts(user.id, memberNo);
     const account  = accounts.find((acc) => acc.account_type === 'transactional') || accounts[0];
 
     const token = jwt.sign(

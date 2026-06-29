@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS users (
     pin_hash        TEXT                NOT NULL,         -- bcrypt hashed PIN
     id_number       VARCHAR(20)         UNIQUE,           -- National ID
     email           VARCHAR(150)        UNIQUE,
-    member_number   VARCHAR(30)         UNIQUE,           -- e.g. YC-001
+    member_number   VARCHAR(30)         UNIQUE,           -- e.g. IC-000001
     role            VARCHAR(20)         NOT NULL DEFAULT 'member', -- member | staff | admin
     is_active       BOOLEAN             NOT NULL DEFAULT TRUE,
     created_at      TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -45,8 +45,7 @@ CREATE TYPE account_type AS ENUM (
     'shared',
     'transactional',
     'loans',
-    'savings',
-    'backoffice'
+    'savings'
 );
 
 CREATE TABLE IF NOT EXISTS accounts (

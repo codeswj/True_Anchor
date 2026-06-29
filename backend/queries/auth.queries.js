@@ -1,4 +1,5 @@
 const { pool } = require('../config/db');
+const { generateAccountNumber } = require('../utils/helpers');
 
 const findUserByPhone = async (phone) => {
     const { rows } = await pool.query(
@@ -42,8 +43,7 @@ const createAccount = async (userId, accountNumber) => {
     return rows[0];
 };
 
-const createMemberAccounts = async (userId, sequence, client = pool) => {
-    const suffix = String(sequence).padStart(6, '0');
+const createMemberAccounts = async (userId, memberNumber, client = pool) => {
     const { rows } = await client.query(
         `INSERT INTO accounts (user_id, account_number, account_type)
          VALUES
@@ -52,7 +52,13 @@ const createMemberAccounts = async (userId, sequence, client = pool) => {
             ($1, $4, 'loans'),
             ($1, $5, 'savings')
          RETURNING *`,
-        [userId, `SHR-${suffix}`, `TXN-${suffix}`, `LON-${suffix}`, `SAV-${suffix}`]
+        [
+            userId,
+            generateAccountNumber(memberNumber, 'shared'),
+            generateAccountNumber(memberNumber, 'transactional'),
+            generateAccountNumber(memberNumber, 'loans'),
+            generateAccountNumber(memberNumber, 'savings'),
+        ]
     );
     return rows;
 };

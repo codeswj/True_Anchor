@@ -33,8 +33,7 @@ const getAllUsersWithDetails = async ({ limit = 100, offset = 0 } = {}) => {
                      WHEN 'transactional' THEN 2
                      WHEN 'savings' THEN 3
                      WHEN 'loans' THEN 4
-                     WHEN 'backoffice' THEN 5
-                     ELSE 6
+                     ELSE 5
                  END`,
             [userIds]
         );
@@ -121,8 +120,7 @@ const getUserByIdWithDetails = async (userId) => {
                      WHEN 'transactional' THEN 2
                      WHEN 'savings' THEN 3
                      WHEN 'loans' THEN 4
-                     WHEN 'backoffice' THEN 5
-                     ELSE 6
+                     ELSE 5
                  END`,
         [userId]
     );

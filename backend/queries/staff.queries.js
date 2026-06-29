@@ -1,4 +1,5 @@
 const { pool } = require('../config/db');
+const { generateAccountNumber } = require('../utils/helpers');
 
 // Check for duplicate member by phone, id_number, or email
 const findMemberByPhoneOrIdOrEmail = async (phone, idNumber, email) => {
@@ -76,6 +77,8 @@ const onboardMember = async ({
         );
 
         // 3. Create 4 sub-accounts: shares, transactional, loans, savings
+        // Account numbers derived from member number with type digit:
+        // 5=shares, 4=savings, 3=loans, 2=transactional
         const { rows: accountRows } = await client.query(
             `INSERT INTO accounts (user_id, account_number, account_type)
              VALUES
@@ -84,7 +87,13 @@ const onboardMember = async ({
                 ($1, $4, 'loans'),
                 ($1, $5, 'savings')
              RETURNING id, account_number, account_type, balance, shares, is_active, created_at`,
-            [user.id, `SHR-${suffix}`, `TXN-${suffix}`, `LON-${suffix}`, `SAV-${suffix}`]
+            [
+                user.id,
+                generateAccountNumber(memberNumber, 'shared'),
+                generateAccountNumber(memberNumber, 'transactional'),
+                generateAccountNumber(memberNumber, 'loans'),
+                generateAccountNumber(memberNumber, 'savings'),
+            ]
         );
 
         await client.query('COMMIT');
@@ -135,8 +144,7 @@ const listMembersWithAccounts = async ({ limit = 100, offset = 0, status } = {})
                     WHEN 'transactional' THEN 2
                     WHEN 'savings' THEN 3
                     WHEN 'loans' THEN 4
-                    WHEN 'backoffice' THEN 5
-                    ELSE 6
+                    ELSE 5
                 END`,
             [userIds]
         );
@@ -186,14 +194,13 @@ const getMemberWithDetails = async (userId) => {
          FROM accounts a
          WHERE a.user_id = $1
          ORDER BY
-            CASE a.account_type::text
-                WHEN 'shared' THEN 1
-                WHEN 'transactional' THEN 2
-                WHEN 'savings' THEN 3
-                WHEN 'loans' THEN 4
-                WHEN 'backoffice' THEN 5
-                ELSE 6
-            END`,
+                CASE a.account_type::text
+                    WHEN 'shared' THEN 1
+                    WHEN 'transactional' THEN 2
+                    WHEN 'savings' THEN 3
+                    WHEN 'loans' THEN 4
+                    ELSE 5
+                END`,
         [userId]
     );
 

@@ -3,7 +3,7 @@ const { getAccountByUserId, updateBalance, updateShares } = require('../queries/
 const { createTransaction, getTransactionsByAccount } = require('../queries/transaction.queries');
 const { generateReference, formatPhone } = require('../utils/helpers');
 
-const MEMBER_ACCOUNT_TYPES = ['shared', 'transactional', 'backoffice'];
+const MEMBER_ACCOUNT_TYPES = ['shared', 'transactional', 'savings', 'loans'];
 const MEMBER_MANAGED_ACCOUNT_TYPES = ['shared', 'transactional'];
 
 const normalizeAccountType = (accountType = 'transactional', allowedTypes = MEMBER_ACCOUNT_TYPES) => {
