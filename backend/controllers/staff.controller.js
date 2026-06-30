@@ -16,6 +16,7 @@ const onboardMember = async (req, res, next) => {
             physicalAddress,
             signatureFilePath,
             passportPhotoFilePath,
+            nextOfKin,
         } = req.body;
 
         if (!fullName || !phone) {
@@ -35,6 +36,7 @@ const onboardMember = async (req, res, next) => {
             physicalAddress,
             signatureFilePath,
             passportPhotoFilePath,
+            nextOfKin,
         });
 
         return success(res, data, 'Member onboarded successfully', 201);
@@ -68,4 +70,18 @@ const getMember = async (req, res, next) => {
     }
 };
 
-module.exports = { onboardMember, listMembers, getMember };
+const listLoans = async (req, res, next) => {
+    try {
+        const status = req.query.status || 'all';
+        const search = req.query.search || '';
+        const limit = parseInt(req.query.limit) || 100;
+        const offset = parseInt(req.query.offset) || 0;
+        const data = await staffService.listAllLoans({ status, search, limit, offset });
+        return success(res, data);
+    } catch (err) {
+        if (err.statusCode) return error(res, err.message, err.statusCode);
+        next(err);
+    }
+};
+
+module.exports = { onboardMember, listMembers, getMember, listLoans };

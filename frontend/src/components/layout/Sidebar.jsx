@@ -1,9 +1,10 @@
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import {
   LayoutDashboard, ArrowLeftRight, CreditCard, HandCoins,
   MessageSquare, Settings, LogOut, Users, BarChart3,
-  Bell, X, Wallet, Receipt, FileText, Building2, Package, BookOpen
+  Bell, X, Wallet, Receipt, FileText, Building2, Package, BookOpen, ChevronDown, UserPlus, Store
 } from 'lucide-react';
 import logo from '../../assets/ilovia-capital-logo.jpg';
 
@@ -29,7 +30,6 @@ const NAV_ADMIN = [
 
 const NAV_STAFF = [
   { to: '/staff', icon: LayoutDashboard, label: 'Staff Portal' },
-  { to: '/staff/membership', icon: Users, label: 'Membership' },
   { to: '/staff/savings', icon: Wallet, label: 'Savings' },
   { to: '/staff/loans', icon: HandCoins, label: 'Loans' },
   { to: '/staff/payables', icon: Receipt, label: 'Payables' },
@@ -42,11 +42,38 @@ const NAV_STAFF = [
   { to: '/settings', icon: Settings, label: 'Settings' },
 ];
 
+const MEMBERSHIP_CHILDREN = [
+  { to: '/staff/membership', icon: Users, label: 'Member Listing' },
+  { to: '/staff/membership/new', icon: UserPlus, label: 'Add New Member' },
+];
+
+const PAYABLES_CHILDREN = [
+  { to: '/staff/payables', icon: Receipt, label: 'Payable Listings' },
+  { to: '/staff/payables/vendors', icon: Store, label: 'Vendors' },
+];
+
 export default function Sidebar({ mobileOpen, onClose }) {
   const { user, logoutUser } = useAuth();
+  const { pathname } = useLocation();
   const navigate = useNavigate();
   const role = String(user?.role || 'member').trim().toLowerCase();
   const nav = role === 'admin' ? NAV_ADMIN : role === 'staff' ? NAV_STAFF : NAV_MEMBER;
+  const membershipActive = pathname.startsWith('/staff/membership');
+  const [membershipOpen, setMembershipOpen] = useState(membershipActive);
+  const payablesActive = pathname.startsWith('/staff/payables');
+  const [payablesOpen, setPayablesOpen] = useState(payablesActive);
+
+  useEffect(() => {
+    if (membershipActive) {
+      setMembershipOpen(true);
+    }
+  }, [membershipActive]);
+
+  useEffect(() => {
+    if (payablesActive) {
+      setPayablesOpen(true);
+    }
+  }, [payablesActive]);
 
   const handleLogout = () => {
     logoutUser();
@@ -54,6 +81,11 @@ export default function Sidebar({ mobileOpen, onClose }) {
   };
 
   const initials = user?.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'IC';
+  const staffPortalNav = role === 'staff' ? nav.find((item) => item.to === '/staff') : null;
+  const staffSavingsNav = role === 'staff' ? nav.find((item) => item.to === '/staff/savings') : null;
+  const staffNavRest = role === 'staff'
+    ? nav.filter((item) => !['/staff', '/staff/savings', '/staff/payables'].includes(item.to))
+    : nav;
 
   return (
     <>
@@ -112,24 +144,167 @@ export default function Sidebar({ mobileOpen, onClose }) {
               {role === 'admin' ? 'Admin' : 'Staff'}
             </p>
           )}
-          {nav.map(({ to, icon: Icon, label }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={to === '/dashboard' || to === '/admin' || to === '/staff'}
-              onClick={onClose}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-xl mb-1 text-sm font-medium transition-all
-                ${isActive
-                  ? 'bg-white text-blue-800 shadow-md'
-                  : 'text-blue-100 hover:bg-white/15 hover:text-white'
-                }`
-              }
-            >
-              <Icon size={18} />
-              {label}
-            </NavLink>
-          ))}
+          {role === 'staff' ? (
+            <>
+              {staffPortalNav && (
+                <NavLink
+                  key={staffPortalNav.to}
+                  to={staffPortalNav.to}
+                  end
+                  onClick={onClose}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-3 py-2.5 rounded-xl mb-1 text-sm font-medium transition-all
+                    ${isActive
+                      ? 'bg-white text-blue-800 shadow-md'
+                      : 'text-blue-100 hover:bg-white/15 hover:text-white'
+                    }`
+                  }
+                >
+                  <staffPortalNav.icon size={18} />
+                  {staffPortalNav.label}
+                </NavLink>
+              )}
+
+              <div className="mb-1">
+                <button
+                  type="button"
+                  onClick={() => setMembershipOpen((open) => !open)}
+                  className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                    membershipActive || membershipOpen
+                      ? 'bg-white text-blue-800 shadow-md'
+                      : 'text-blue-100 hover:bg-white/15 hover:text-white'
+                  }`}
+                >
+                  <Users size={18} />
+                  <span className="flex-1 text-left">Membership</span>
+                  <ChevronDown
+                    size={16}
+                    className={`transition-transform ${membershipOpen ? 'rotate-180' : ''}`}
+                  />
+                </button>
+
+                {membershipOpen && (
+                  <div className="mt-1 ml-3 border-l border-white/15 pl-3 space-y-1">
+                    {MEMBERSHIP_CHILDREN.map(({ to, icon: Icon, label }) => (
+                      <NavLink
+                        key={to}
+                        to={to}
+                        end
+                        onClick={onClose}
+                        className={({ isActive }) =>
+                          `flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
+                            isActive
+                              ? 'bg-white text-blue-800 shadow-md'
+                              : 'text-blue-100 hover:bg-white/15 hover:text-white'
+                          }`
+                        }
+                      >
+                        <Icon size={16} />
+                        {label}
+                      </NavLink>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {staffSavingsNav && (
+                <NavLink
+                  key={staffSavingsNav.to}
+                  to={staffSavingsNav.to}
+                  onClick={onClose}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-3 py-2.5 rounded-xl mb-1 text-sm font-medium transition-all
+                    ${isActive
+                      ? 'bg-white text-blue-800 shadow-md'
+                      : 'text-blue-100 hover:bg-white/15 hover:text-white'
+                    }`
+                  }
+                >
+                  <staffSavingsNav.icon size={18} />
+                  {staffSavingsNav.label}
+                </NavLink>
+              )}
+
+              <div className="mb-1">
+                <button
+                  type="button"
+                  onClick={() => setPayablesOpen((open) => !open)}
+                  className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                    payablesActive || payablesOpen
+                      ? 'bg-white text-blue-800 shadow-md'
+                      : 'text-blue-100 hover:bg-white/15 hover:text-white'
+                  }`}
+                >
+                  <Receipt size={18} />
+                  <span className="flex-1 text-left">Payables</span>
+                  <ChevronDown
+                    size={16}
+                    className={`transition-transform ${payablesOpen ? 'rotate-180' : ''}`}
+                  />
+                </button>
+
+                {payablesOpen && (
+                  <div className="mt-1 ml-3 border-l border-white/15 pl-3 space-y-1">
+                    {PAYABLES_CHILDREN.map(({ to, icon: Icon, label }) => (
+                      <NavLink
+                        key={to}
+                        to={to}
+                        end
+                        onClick={onClose}
+                        className={({ isActive }) =>
+                          `flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
+                            isActive
+                              ? 'bg-white text-blue-800 shadow-md'
+                              : 'text-blue-100 hover:bg-white/15 hover:text-white'
+                          }`
+                        }
+                      >
+                        <Icon size={16} />
+                        {label}
+                      </NavLink>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {staffNavRest.map(({ to, icon: Icon, label }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  onClick={onClose}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-3 py-2.5 rounded-xl mb-1 text-sm font-medium transition-all
+                    ${isActive
+                      ? 'bg-white text-blue-800 shadow-md'
+                      : 'text-blue-100 hover:bg-white/15 hover:text-white'
+                    }`
+                  }
+                >
+                  <Icon size={18} />
+                  {label}
+                </NavLink>
+              ))}
+            </>
+          ) : (
+            nav.map(({ to, icon: Icon, label }) => (
+              <NavLink
+                key={to}
+                to={to}
+                end={to === '/dashboard' || to === '/admin' || to === '/staff'}
+                onClick={onClose}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3 py-2.5 rounded-xl mb-1 text-sm font-medium transition-all
+                  ${isActive
+                    ? 'bg-white text-blue-800 shadow-md'
+                    : 'text-blue-100 hover:bg-white/15 hover:text-white'
+                  }`
+                }
+              >
+                <Icon size={18} />
+                {label}
+              </NavLink>
+            ))
+          )}
         </nav>
 
         {/* Logout */}

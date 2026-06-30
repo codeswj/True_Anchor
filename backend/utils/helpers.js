@@ -21,6 +21,11 @@ const generateAccountNumber = (memberNumber, accountType) => {
     return `IC-${modifiedSuffix}`;
 };
 
+// Generate a vendor number e.g. V-00001
+const generateVendorNumber = (sequence) => {
+    return `V-${String(sequence).padStart(5, '0')}`;
+};
+
 // Generate a loan number e.g. LN-000123
 const generateLoanNumber = (sequence) => {
     return `LN-${String(sequence).padStart(6, '0')}`;
@@ -55,6 +60,7 @@ const computeMonthlyRepayment = (principal, annualRate, termMonths) => {
 module.exports = {
     generateMemberNumber,
     generateAccountNumber,
+    generateVendorNumber,
     generateLoanNumber,
     generateReference,
     formatPhone,

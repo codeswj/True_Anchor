@@ -42,6 +42,7 @@ const onboardMember = async ({
     physicalAddress,
     signatureFilePath,
     passportPhotoFilePath,
+    nextOfKin,    // { name, idNumber, relationship, phone, percentage } | undefined
 }) => {
     const client = await pool.connect();
     try {
@@ -96,6 +97,22 @@ const onboardMember = async ({
             ]
         );
 
+        // 4. Create next of kin (optional)
+        if (nextOfKin && nextOfKin.name) {
+            await client.query(
+                `INSERT INTO next_of_kin (user_id, name, id_number, relationship, phone, percentage)
+                 VALUES ($1, $2, $3, $4, $5, $6)`,
+                [
+                    user.id,
+                    nextOfKin.name,
+                    nextOfKin.idNumber || null,
+                    nextOfKin.relationship || null,
+                    nextOfKin.phone || null,
+                    nextOfKin.percentage != null ? nextOfKin.percentage : 0,
+                ]
+            );
+        }
+
         await client.query('COMMIT');
 
         return { user, accounts: accountRows };
@@ -105,6 +122,17 @@ const onboardMember = async ({
     } finally {
         client.release();
     }
+};
+
+// Get next of kin for a member
+const getNextOfKinByUserId = async (userId) => {
+    const { rows } = await pool.query(
+        `SELECT id, name, id_number, relationship, phone, percentage, created_at
+         FROM next_of_kin
+         WHERE user_id = $1`,
+        [userId]
+    );
+    return rows[0] || null;
 };
 
 // List all members (role = 'member') with their accounts
@@ -223,4 +251,5 @@ module.exports = {
     onboardMember,
     listMembersWithAccounts,
     getMemberWithDetails,
+    getNextOfKinByUserId,
 };

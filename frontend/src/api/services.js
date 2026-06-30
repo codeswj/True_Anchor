@@ -50,6 +50,18 @@ export const getGeneralReport = (params) => api.get('/reports/general', { params
 export const getMembersReport = () => api.get('/reports/members');
 export const getMemberReportById = (id) => api.get(`/reports/members/${id}`);
 
+// STAFF
+export const staffOnboardMember = (data) => api.post('/staff/members/onboard', data);
+export const staffListMembers = (params) => api.get('/staff/members', { params });
+export const staffGetMember = (id) => api.get(`/staff/members/${id}`);
+
+// VENDORS
+export const listVendors = (params) => api.get('/vendors', { params });
+export const getVendor = (id) => api.get(`/vendors/${id}`);
+export const createVendor = (data) => api.post('/vendors', data);
+export const updateVendor = (id, data) => api.put(`/vendors/${id}`, data);
+export const deleteVendor = (id) => api.delete(`/vendors/${id}`);
+
 // NOTIFICATIONS
 export const getNotifications = () => api.get('/notifications');
 

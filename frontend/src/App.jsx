@@ -21,7 +21,12 @@ import AdminReports from './pages/admin/AdminReports';
 import StaffPortal from './pages/staff/StaffPortal';
 import StaffModule from './pages/staff/StaffModule';
 import MembershipModule from './pages/staff/MembershipModule';
+import SavingsModule from './pages/staff/SavingsModule';
 import AddNewMember from './pages/staff/AddNewMember';
+import VendorsModule from './pages/staff/VendorsModule';
+import AddVendor from './pages/staff/AddVendor';
+import VendorDetail from './pages/staff/VendorDetail';
+import EditVendor from './pages/staff/EditVendor';
 import Landing from './pages/Landing';
 
 function AdminGuard({ children }) {
@@ -85,6 +90,11 @@ function AppRoutes() {
         <Route path="/staff"         element={<StaffGuard><StaffPortal /></StaffGuard>} />
         <Route path="/staff/membership" element={<StaffGuard><MembershipModule /></StaffGuard>} />
         <Route path="/staff/membership/new" element={<StaffGuard><AddNewMember /></StaffGuard>} />
+        <Route path="/staff/savings" element={<StaffGuard><SavingsModule /></StaffGuard>} />
+        <Route path="/staff/payables/vendors/new" element={<StaffGuard><AddVendor /></StaffGuard>} />
+        <Route path="/staff/payables/vendors/:id/edit" element={<StaffGuard><EditVendor /></StaffGuard>} />
+        <Route path="/staff/payables/vendors/:id" element={<StaffGuard><VendorDetail /></StaffGuard>} />
+        <Route path="/staff/payables/vendors" element={<StaffGuard><VendorsModule /></StaffGuard>} />
         <Route path="/staff/:moduleSlug" element={<StaffGuard><StaffModule /></StaffGuard>} />
       </Route>
 

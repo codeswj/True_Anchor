@@ -44,10 +44,6 @@ account_rows AS (
     UNION ALL
     SELECT id AS user_id, 'TXN-' || suffix AS account_number, 'transactional'::account_type AS account_type, transactional_balance AS balance, 0.00 AS shares
     FROM seeded_users
-    UNION ALL
-    SELECT id AS user_id, 'BOF-' || suffix AS account_number, 'transactional'::account_type AS account_type, 0.00 AS balance, 0.00 AS shares
-    FROM seeded_users
-    WHERE 1=0
 )
 INSERT INTO accounts (user_id, account_number, account_type, balance, shares)
 SELECT user_id, account_number, account_type, balance, shares

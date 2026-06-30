@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { getNotifications } from '../../api/services';
 import { PageHeader, EmptyState, formatKES } from '../../components/ui/index';
 import { useAuth } from '../../context/AuthContext';
-import { Bell, MessageSquare, ArrowLeftRight, HandCoins, UserPlus, Megaphone, RefreshCw, Circle, CreditCard, Mail } from 'lucide-react';
+import { Bell, MessageSquare, ArrowLeftRight, HandCoins, UserPlus, Megaphone, RefreshCw, Circle, CreditCard, Mail, Store, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
@@ -11,6 +11,7 @@ const TYPE_CONFIG = {
   transaction: { icon: ArrowLeftRight, bg: 'bg-emerald-100', text: 'text-emerald-700', label: 'Transaction' },
   loan: { icon: HandCoins, bg: 'bg-purple-100', text: 'text-purple-700', label: 'Loan' },
   member_registration: { icon: UserPlus, bg: 'bg-green-100', text: 'text-green-700', label: 'New Member' },
+  vendor: { icon: Store, bg: 'bg-orange-100', text: 'text-orange-700', label: 'Vendor' },
   system_message: { icon: Megaphone, bg: 'bg-orange-100', text: 'text-orange-700', label: 'System' },
 };
 
@@ -124,13 +125,21 @@ export default function Notifications() {
                     <p className={`text-sm font-semibold mt-0.5 ${unread ? 'text-slate-900' : 'text-slate-700'}`}>{notif.title}</p>
                     <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">{notif.description}</p>
 
-                    {/* Related user info for admin */}
-                    {isAdmin && notif.related_user_name && (
-                      <div className="mt-1.5 flex items-center gap-1.5">
-                        <UserPlus size={12} className="text-slate-400" />
-                        <span className="text-xs text-slate-400 font-medium">{notif.related_user_name}</span>
-                      </div>
-                    )}
+                    {/* Who performed the action and when */}
+                    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+                      {notif.performed_by_name && (
+                        <div className="flex items-center gap-1">
+                          <User size={11} className="text-slate-400" />
+                          <span className="text-xs text-slate-400 font-medium">by {notif.performed_by_name}</span>
+                        </div>
+                      )}
+                      {isAdmin && notif.related_user_name && notif.related_user_name !== notif.performed_by_name && (
+                        <div className="flex items-center gap-1">
+                          <UserPlus size={11} className="text-slate-400" />
+                          <span className="text-xs text-slate-400">{notif.related_user_name}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

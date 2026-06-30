@@ -1,6 +1,7 @@
 const bcrypt = require('bcrypt');
 const { generateMemberNumber } = require('../utils/helpers');
 const staffQueries = require('../queries/staff.queries');
+const { getAllLoans } = require('../queries/loan.staff.queries');
 const {
     findMemberByPhoneOrIdOrEmail,
     onboardMember,
@@ -23,6 +24,7 @@ const onboardNewMember = async ({
     physicalAddress,
     signatureFilePath,
     passportPhotoFilePath,
+    nextOfKin,     // { name, idNumber, relationship, phone, percentage } | undefined
 }) => {
     // Check for duplicates
     const existing = await findMemberByPhoneOrIdOrEmail(phone, idNumber, email);
@@ -51,6 +53,13 @@ const onboardNewMember = async ({
         physicalAddress,
         signatureFilePath,
         passportPhotoFilePath,
+        nextOfKin: nextOfKin && nextOfKin.name ? {
+            name: nextOfKin.name,
+            idNumber: nextOfKin.idNumber,
+            relationship: nextOfKin.relationship,
+            phone: nextOfKin.phone,
+            percentage: nextOfKin.percentage,
+        } : undefined,
     });
 
     return {
@@ -88,4 +97,9 @@ const getMember = async (userId) => {
     return member;
 };
 
-module.exports = { onboardNewMember, listMembers, getMember };
+const listAllLoans = async ({ status, search, limit, offset } = {}) => {
+    const loans = await getAllLoans({ status, search, limit, offset });
+    return { loans, total: loans.length };
+};
+
+module.exports = { onboardNewMember, listMembers, getMember, listAllLoans };

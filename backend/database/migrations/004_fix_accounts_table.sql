@@ -1,10 +1,10 @@
 -- Ensures the accounts table uses the member sub-account model:
--- shared, transactional, and backoffice accounts under one member login.
+-- shared and transactional accounts under one member login.
 
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'account_type') THEN
-        CREATE TYPE account_type AS ENUM ('shared', 'transactional', 'backoffice');
+        CREATE TYPE account_type AS ENUM ('shared', 'transactional');
     END IF;
 END $$;
 
@@ -48,14 +48,3 @@ FROM accounts
 WHERE account_type = 'transactional'
 ON CONFLICT (user_id, account_type) DO NOTHING;
 
-INSERT INTO accounts (user_id, account_number, account_type, balance, shares, is_active)
-SELECT
-    user_id,
-    'BOF-' || SUBSTRING(account_number FROM 5),
-    'backoffice',
-    0.00,
-    0.00,
-    is_active
-FROM accounts
-WHERE account_type = 'transactional'
-ON CONFLICT (user_id, account_type) DO NOTHING;

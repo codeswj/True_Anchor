@@ -19,7 +19,7 @@ export default function StaffPortal() {
         action={
           <div className="relative w-64 hidden md:block">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input className="input-field pl-9" placeholder="Search modules" />
+            <input className="input-field pl-9" placeholder="Search workspaces" />
           </div>
         }
       />
@@ -34,7 +34,7 @@ export default function StaffPortal() {
         <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
           <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-bold text-slate-800">Modules</h2>
+              <h2 className="text-lg font-bold text-slate-800">Workspaces</h2>
               <p className="text-sm text-slate-500">Choose a workspace to review queues and records.</p>
             </div>
             <span className="badge-info">{staffModules.length} active</span>

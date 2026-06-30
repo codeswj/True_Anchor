@@ -81,7 +81,7 @@ const getSystemNotifications = async (userId, { limit = 50 } = {}) => {
 
 const getAdminNotifications = async ({ limit = 100 } = {}) => {
     const { rows } = await pool.query(`
-        -- New member registrations
+        -- New member registrations (who onboarded them)
         SELECT
             u.id::text AS id,
             'member_registration' AS notification_type,
@@ -89,13 +89,14 @@ const getAdminNotifications = async ({ limit = 100 } = {}) => {
             CONCAT(u.full_name, ' (', u.phone, ') joined as ', u.member_number) AS description,
             u.created_at,
             u.id AS related_user_id,
-            u.full_name AS related_user_name
+            u.full_name AS related_user_name,
+            NULL::text AS performed_by_name
         FROM users u
         WHERE u.role = 'member'
 
         UNION ALL
 
-        -- Recent large transactions
+        -- Recent transactions (who performed them)
         SELECT
             t.id::text,
             'transaction' AS notification_type,
@@ -106,7 +107,8 @@ const getAdminNotifications = async ({ limit = 100 } = {}) => {
             ) AS description,
             t.created_at,
             u.id AS related_user_id,
-            u.full_name AS related_user_name
+            u.full_name AS related_user_name,
+            NULL::text AS performed_by_name
         FROM transactions t
         JOIN users u ON u.id = t.user_id
         WHERE t.status::text IN ('completed', 'failed')
@@ -125,9 +127,11 @@ const getAdminNotifications = async ({ limit = 100 } = {}) => {
             ) AS description,
             COALESCE(l.updated_at, l.applied_at) AS created_at,
             u.id AS related_user_id,
-            u.full_name AS related_user_name
+            u.full_name AS related_user_name,
+            CONCAT(approver.full_name) AS performed_by_name
         FROM loans l
         JOIN users u ON u.id = l.user_id
+        LEFT JOIN users approver ON approver.id = l.approved_by
 
         UNION ALL
 
@@ -139,9 +143,41 @@ const getAdminNotifications = async ({ limit = 100 } = {}) => {
             CONCAT('To: ', u.full_name, ' - ', m.body) AS description,
             m.created_at,
             u.id AS related_user_id,
-            u.full_name AS related_user_name
+            u.full_name AS related_user_name,
+            NULL::text AS performed_by_name
         FROM messages m
         JOIN users u ON u.id = m.user_id
+
+        UNION ALL
+
+        -- Vendor activities (new vendor created)
+        SELECT
+            v.id::text || '-created' AS id,
+            'vendor' AS notification_type,
+            'Vendor Added' AS title,
+            CONCAT('Vendor "', v.vendor_name, '" (', v.vendor_number, ') registered - Phone: ', v.phone) AS description,
+            v.created_at,
+            v.created_by AS related_user_id,
+            creator.full_name AS related_user_name,
+            creator.full_name AS performed_by_name
+        FROM vendors v
+        LEFT JOIN users creator ON creator.id = v.created_by
+
+        UNION ALL
+
+        -- Vendor activities (vendor details updated)
+        SELECT
+            v.id::text || '-updated' AS id,
+            'vendor' AS notification_type,
+            'Vendor Updated' AS title,
+            CONCAT('Vendor "', v.vendor_name, '" (', v.vendor_number, ') details were updated') AS description,
+            v.updated_at,
+            v.created_by AS related_user_id,
+            creator.full_name AS related_user_name,
+            creator.full_name AS performed_by_name
+        FROM vendors v
+        LEFT JOIN users creator ON creator.id = v.created_by
+        WHERE v.updated_at > v.created_at
 
         ORDER BY created_at DESC
         LIMIT $1
@@ -149,4 +185,4 @@ const getAdminNotifications = async ({ limit = 100 } = {}) => {
     return rows;
 };
 
-module.exports = { getSystemNotifications, getAdminNotifications };
+module.exports = { getSystemNotifications, getAdminNotifications, getAllActivities: getAdminNotifications };

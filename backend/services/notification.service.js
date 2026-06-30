@@ -1,9 +1,11 @@
-const { getSystemNotifications, getAdminNotifications } = require('../queries/notification.queries');
+const { getSystemNotifications, getAllActivities } = require('../queries/notification.queries');
 
 const getNotifications = async (userId, role) => {
-    if (role === 'admin') {
-        return getAdminNotifications({ limit: 100 });
+    // Both admin and staff see all system activities
+    if (role === 'admin' || role === 'staff') {
+        return getAllActivities({ limit: 200 });
     }
+    // Regular members see only their own notifications
     return getSystemNotifications(userId, { limit: 50 });
 };
 

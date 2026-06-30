@@ -38,7 +38,6 @@ export default function StaffModule() {
               <Icon size={21} />
             </div>
             <div>
-              <p className="text-xs uppercase font-semibold text-slate-400">Module</p>
               <h2 className="font-bold text-slate-800">{module.title}</h2>
             </div>
           </div>

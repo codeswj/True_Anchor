@@ -51,7 +51,7 @@ CREATE TYPE account_type AS ENUM (
 CREATE TABLE IF NOT EXISTS accounts (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id         UUID                NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    account_number  VARCHAR(30)         NOT NULL UNIQUE,  -- e.g. TXN-000123, SHR-000123, BOF-000123
+    account_number  VARCHAR(30)         NOT NULL UNIQUE,  -- e.g. IC-500002, IC-200002, IC-300002, IC-400002
     account_type    account_type        NOT NULL DEFAULT 'transactional',
     balance         NUMERIC(15, 2)      NOT NULL DEFAULT 0.00,
     shares          NUMERIC(15, 2)      NOT NULL DEFAULT 0.00,  -- share capital
